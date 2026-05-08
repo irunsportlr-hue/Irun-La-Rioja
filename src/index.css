@@ -1,0 +1,20 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans antialiased bg-white text-brand-dark overflow-x-hidden;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-brand-red text-white px-6 py-3 rounded-full font-semibold transition-all hover:bg-red-700 hover:shadow-lg active:scale-95;
+  }
+  .btn-outline {
+    @apply border-2 border-brand-dark text-brand-dark px-6 py-3 rounded-full font-semibold transition-all hover:bg-brand-dark hover:text-white active:scale-95;
+  }
+}
