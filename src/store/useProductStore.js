@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { supabase } from '../lib/supabaseClient';
 
 const initialMockProducts = [
   { id: '1', name: 'Nike Air Max 270', price: 145000, category: 'Calzado', brand: 'Nike', image_url: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=800', description: 'Las Nike Air Max 270 ofrecen una amortiguación visible en cada pisada. Diseñadas para el estilo diario que exige confort y ligereza.' },
@@ -10,9 +11,28 @@ const initialMockProducts = [
 ];
 
 const useProductStore = create((set, get) => ({
-  products: initialMockProducts,
-  
-  // Función para búsqueda global, predictiva insensible a mayúsculas
+  products: [],
+  isLoading: false,
+  error: null,
+
+  fetchProducts: async () => {
+    set({ isLoading: true });
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      set({ products: data, error: null });
+    } catch (error) {
+      set({ error: error.message });
+      console.error('Error fetching products:', error);
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
   searchProducts: (query) => {
     if (!query) return [];
     const lowerQuery = query.toLowerCase();
@@ -20,14 +40,64 @@ const useProductStore = create((set, get) => ({
     return get().products.filter(product => {
       return (
         product.name.toLowerCase().includes(lowerQuery) || 
-        product.brand.toLowerCase().includes(lowerQuery) || 
-        product.category.toLowerCase().includes(lowerQuery)
+        (product.brand && product.brand.toLowerCase().includes(lowerQuery)) || 
+        (product.category && product.category.toLowerCase().includes(lowerQuery))
       );
     });
   },
 
   getProductById: (id) => {
-    return get().products.find(p => p.id === String(id));
+    return get().products.find(p => String(p.id) === String(id));
+  },
+
+  addProduct: async (newProduct) => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .insert([newProduct])
+        .select();
+
+      if (error) throw error;
+      set((state) => ({ products: [data[0], ...state.products] }));
+    } catch (error) {
+      console.error('Error adding product:', error);
+      alert('Error al guardar en la base de datos: ' + error.message);
+    }
+  },
+
+  updateProduct: async (id, updatedFields) => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .update(updatedFields)
+        .eq('id', id)
+        .select();
+
+      if (error) throw error;
+      set((state) => ({
+        products: state.products.map((p) => (p.id === id ? data[0] : p))
+      }));
+    } catch (error) {
+      console.error('Error updating product:', error);
+      alert('Error al actualizar en la base de datos: ' + error.message);
+    }
+  },
+
+  deleteProduct: async (id) => {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      set((state) => ({
+        products: state.products.filter((p) => p.id !== id)
+      }));
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      alert('Error al eliminar de la base de datos: ' + error.message);
+    }
   }
 }));
 

@@ -1,20 +1,39 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, ShoppingBag } from 'lucide-react';
 import useCartStore from '../store/useCartStore';
 import useProductStore from '../store/useProductStore';
+import SizeGuide from '../components/SizeGuide';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const getProductById = useProductStore(state => state.getProductById);
+  const fetchProducts = useProductStore(state => state.fetchProducts);
+  const products = useProductStore(state => state.products);
+  const isLoading = useProductStore(state => state.isLoading);
   const product = getProductById(id);
   const [selectedSize, setSelectedSize] = useState(null);
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   
+  useEffect(() => {
+    if (products.length === 0) {
+      fetchProducts();
+    }
+  }, []);
+
   const addItem = useCartStore(state => state.addItem);
 
   const sizes = product?.category === 'Calzado' ? ['39', '40', '41', '42', '43', '44'] : 
                 product?.category === 'Ropa' ? ['S', 'M', 'L', 'XL'] : ['Único'];
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-red"></div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -58,8 +77,24 @@ const ProductDetail = () => {
             </div>
             <h1 className="text-4xl font-extrabold font-montserrat text-brand-dark mb-4">{product.name}</h1>
             
-            <div className="mb-6">
-              <span className="text-3xl font-extrabold text-brand-red">${product.price.toLocaleString('es-AR')}</span>
+            <div className="mb-6 flex flex-col">
+              {product.discount > 0 ? (
+                <>
+                  <div className="flex items-center space-x-4 mb-1">
+                    <span className="text-3xl font-extrabold text-brand-red">
+                      ${(product.price * (1 - product.discount / 100)).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                    </span>
+                    <span className="text-sm font-bold text-white bg-brand-red px-3 py-1 rounded-full shadow-sm">
+                      {product.discount}% OFF
+                    </span>
+                  </div>
+                  <span className="text-lg text-gray-400 line-through font-semibold">
+                    ${product.price.toLocaleString('es-AR')}
+                  </span>
+                </>
+              ) : (
+                <span className="text-3xl font-extrabold text-brand-red">${product.price.toLocaleString('es-AR')}</span>
+              )}
             </div>
 
             <p className="text-gray-600 mb-8 leading-relaxed">
@@ -69,7 +104,9 @@ const ProductDetail = () => {
             <div className="mb-8 p-6 bg-gray-50 rounded-2xl border border-gray-100">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-bold text-gray-900">Seleccionar Talle</h3>
-                <span className="text-sm text-brand-red hover:underline cursor-pointer">Guía de talles</span>
+                <span onClick={() => setIsSizeGuideOpen(true)} className="text-sm text-brand-red hover:underline cursor-pointer font-bold flex items-center">
+                  <span className="mr-1">📏</span> Guía de talles
+                </span>
               </div>
               <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-3">
                 {sizes.map(size => (
@@ -102,6 +139,8 @@ const ProductDetail = () => {
         </div>
 
       </div>
+      
+      <SizeGuide isOpen={isSizeGuideOpen} onClose={() => setIsSizeGuideOpen(false)} />
     </div>
   );
 };

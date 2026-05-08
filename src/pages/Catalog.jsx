@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Filter } from 'lucide-react';
 
@@ -9,9 +9,15 @@ const brands = ['Todas', 'Nike', 'Adidas', 'Puma', 'Under Armour'];
 
 const Catalog = () => {
   const products = useProductStore(state => state.products);
+  const fetchProducts = useProductStore(state => state.fetchProducts);
+  const isLoading = useProductStore(state => state.isLoading);
   const [activeCategory, setActiveCategory] = useState('Todos');
   const [activeBrand, setActiveBrand] = useState('Todas');
   const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
   const filteredProducts = products.filter(p => {
     const matchCategory = activeCategory === 'Todos' || p.category === activeCategory;
@@ -81,25 +87,49 @@ const Catalog = () => {
 
           {/* Grilla de Productos */}
           <div className="flex-1">
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
-              {filteredProducts.map(product => (
-                <Link to={`/product/${product.id}`} key={product.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 sm:border-transparent">
-                  <div className="relative h-48 sm:h-64 overflow-hidden bg-gray-100">
-                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
-                    <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-white/90 backdrop-blur-sm px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold text-gray-800">
-                      {product.brand}
+            {isLoading ? (
+              <div className="flex justify-center items-center py-20">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-red"></div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
+                {filteredProducts.map(product => (
+                  <Link to={`/product/${product.id}`} key={product.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 sm:border-transparent">
+                    <div className="relative h-48 sm:h-64 overflow-hidden bg-gray-100">
+                      <img src={product.image_url} alt={product.name} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
+                      <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-white/90 backdrop-blur-sm px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold text-gray-800">
+                        {product.brand}
+                      </div>
                     </div>
-                  </div>
-                  <div className="p-3 sm:p-5">
-                    <h3 className="text-sm sm:text-lg font-bold text-gray-900 leading-tight mb-1 group-hover:text-brand-red transition-colors line-clamp-2">{product.name}</h3>
-                    <span className="text-[10px] sm:text-xs text-gray-500 block mb-2 sm:mb-4">{product.category}</span>
-                    <div className="flex items-center justify-between">
-                      <span className="text-base sm:text-lg font-black text-brand-dark">${product.price.toLocaleString('es-AR')}</span>
+                    <div className="p-3 sm:p-5">
+                      <h3 className="text-sm sm:text-lg font-bold text-gray-900 leading-tight mb-1 group-hover:text-brand-red transition-colors line-clamp-2">{product.name}</h3>
+                      <span className="text-[10px] sm:text-xs text-gray-500 block mb-2 sm:mb-4">{product.category}</span>
+                      <div className="flex flex-col">
+                        {product.discount > 0 ? (
+                          <>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-base sm:text-lg font-black text-brand-red">
+                                ${(product.price * (1 - product.discount / 100)).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                              </span>
+                              <span className="text-xs sm:text-sm font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
+                                -{product.discount}%
+                              </span>
+                            </div>
+                            <span className="text-xs text-gray-400 line-through">
+                              ${product.price.toLocaleString('es-AR')}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-base sm:text-lg font-black text-brand-dark">
+                            ${product.price.toLocaleString('es-AR')}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+                  </Link>
+                ))}
+              </div>
+            )}
             
             {filteredProducts.length === 0 && (
               <div className="text-center py-20 bg-white rounded-2xl shadow-sm">

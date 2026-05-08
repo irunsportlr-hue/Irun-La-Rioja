@@ -1,7 +1,8 @@
-import { useState } from 'react';
-import { Package, DollarSign, LogOut, Plus, Edit2, Trash2, MapPin, CheckCircle, Clock, Truck, Home, Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Package, DollarSign, LogOut, Plus, Edit2, Trash2, MapPin, CheckCircle, Clock, Truck, Home, Search, X, Menu, Upload } from 'lucide-react';
 import useOrderStore from '../../store/useOrderStore';
 import useProductStore from '../../store/useProductStore';
+import { supabase } from '../../lib/supabaseClient';
 
 const AdminDashboard = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -16,8 +17,111 @@ const AdminDashboard = () => {
   
   // Catálogo
   const products = useProductStore(state => state.products);
-  const searchProducts = useProductStore(state => state.searchProducts);
+  const fetchProducts = useProductStore(state => state.fetchProducts);
+  const isLoading = useProductStore(state => state.isLoading);
+  const addProduct = useProductStore(state => state.addProduct);
+  const updateProduct = useProductStore(state => state.updateProduct);
+  const deleteProduct = useProductStore(state => state.deleteProduct);
   const [productSearchQuery, setProductSearchQuery] = useState('');
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchProducts();
+    }
+  }, [isAuthenticated]);
+
+  // Modal State
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [productForm, setProductForm] = useState({ name: '', price: '', discount: 0, category: 'Calzado', brand: '', image_url: '', description: '' });
+  
+  // Image Upload State
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
+  // Mobile Menu State
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const handleOpenModal = (product = null) => {
+    setUploadError('');
+    if (product) {
+      setEditingProduct(product);
+      setProductForm({ ...product, discount: product.discount || 0 });
+    } else {
+      setEditingProduct(null);
+      setProductForm({ name: '', price: '', discount: 0, category: 'Calzado', brand: '', image_url: '', description: '' });
+    }
+    setIsProductModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsProductModalOpen(false);
+    setEditingProduct(null);
+    setUploadError('');
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      setUploadError('');
+      
+      // Límite de 10MB (para fotos de iPhone de alta calidad)
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('La imagen es muy pesada. El límite es 10MB.');
+      }
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: supabaseError } = await supabase.storage
+        .from('products')
+        .upload(filePath, file, { upsert: false });
+
+      if (supabaseError) {
+        if (supabaseError.message.includes('bucket')) {
+           throw new Error('El bucket "products" no existe en tu Supabase.');
+        }
+        throw supabaseError;
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from('products')
+        .getPublicUrl(filePath);
+
+      setProductForm({ ...productForm, image_url: publicUrlData.publicUrl });
+    } catch (error) {
+      console.error('Error al subir:', error);
+      setUploadError(error.message || 'Error al subir la imagen.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleProductSubmit = (e) => {
+    e.preventDefault();
+    const formattedProduct = {
+      ...productForm,
+      price: Number(productForm.price),
+      discount: Number(productForm.discount) || 0
+    };
+
+    if (editingProduct) {
+      updateProduct(editingProduct.id, formattedProduct);
+    } else {
+      addProduct(formattedProduct);
+    }
+    handleCloseModal();
+  };
+
+  const handleDeleteProduct = (id) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este producto?')) {
+      deleteProduct(id);
+    }
+  };
 
   // Lógica Filtrado de Órdenes
   const filteredOrders = orders.filter(order => {
@@ -122,20 +226,30 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex flex-col md:flex-row h-screen bg-gray-100 overflow-hidden">
       
+      {/* Mobile Header */}
+      <div className="md:hidden bg-gray-900 text-white p-4 flex justify-between items-center z-20 shadow-md">
+        <h2 className="text-xl font-bold font-montserrat tracking-tight">
+          I-RUN <span className="text-brand-red">/</span> ADMIN
+        </h2>
+        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-white focus:outline-none p-1">
+          {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+        </button>
+      </div>
+
       {/* Sidebar */}
-      <div className="w-64 bg-gray-900 text-white flex flex-col pt-6">
-        <div className="px-6 mb-8">
+      <div className={`${isMobileMenuOpen ? 'flex' : 'hidden'} md:flex flex-col absolute md:relative w-full md:w-64 h-[calc(100vh-60px)] md:h-screen bg-gray-900 text-white pt-2 md:pt-6 z-10 transition-all shrink-0 overflow-y-auto`}>
+        <div className="hidden md:block px-6 mb-8">
           <h2 className="text-2xl font-bold font-montserrat text-white tracking-tight">
             I-RUN <span className="text-brand-red">/</span> ADMIN
           </h2>
           <p className="text-gray-400 text-sm mt-1">Panel de Control</p>
         </div>
         
-        <nav className="flex-1 space-y-2 px-4">
+        <nav className="flex-1 space-y-2 px-4 mt-4 md:mt-0">
           <button 
-            onClick={() => setActiveTab('ventas')}
+            onClick={() => { setActiveTab('ventas'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center px-4 py-3 rounded-xl transition-all font-semibold ${activeTab === 'ventas' ? 'bg-brand-red text-white shadow-lg shadow-red-500/20' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}
           >
             <DollarSign size={20} className="mr-3" />
@@ -143,7 +257,7 @@ const AdminDashboard = () => {
             {orders.length > 0 && <span className="ml-auto bg-white text-brand-red text-xs px-2 py-0.5 rounded-full">{orders.filter(o => o.status !== 'Entregado').length}</span>}
           </button>
           <button 
-            onClick={() => setActiveTab('productos')}
+            onClick={() => { setActiveTab('productos'); setIsMobileMenuOpen(false); }}
             className={`w-full flex items-center px-4 py-3 rounded-xl transition-all font-semibold ${activeTab === 'productos' ? 'bg-brand-red text-white shadow-lg shadow-red-500/20' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}
           >
             <Package size={20} className="mr-3" />
@@ -151,8 +265,8 @@ const AdminDashboard = () => {
           </button>
         </nav>
 
-        <div className="p-4 border-t border-gray-800">
-          <button onClick={handleLogout} className="flex items-center text-gray-400 hover:text-white transition-colors w-full px-4 py-2 font-medium">
+        <div className="p-4 border-t border-gray-800 mt-auto">
+          <button onClick={handleLogout} className="flex items-center text-gray-400 hover:text-white transition-colors w-full px-4 py-3 md:py-2 font-medium">
             <LogOut size={20} className="mr-3" />
             Cerrar Sesión
           </button>
@@ -160,7 +274,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-x-hidden overflow-y-auto p-8">
+      <div className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 relative z-0">
         
         {/* ========== PESTAÑA DE VENTAS ========== */}
         {activeTab === 'ventas' && (
@@ -305,15 +419,22 @@ const AdminDashboard = () => {
                   </div>
                 </div>
 
-                <button className="flex flex-row items-center whitespace-nowrap justify-center btn-primary px-4 py-2.5 rounded-xl h-[46px]">
+                <button 
+                  onClick={() => handleOpenModal()}
+                  className="flex flex-row items-center whitespace-nowrap justify-center btn-primary px-4 py-2.5 rounded-xl h-[46px]"
+                >
                   <Plus size={20} className="mr-2" />
                   Nuevo
                 </button>
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-              {filteredProducts.length > 0 ? (
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
+              {isLoading ? (
+                <div className="flex justify-center items-center py-20">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-red"></div>
+                </div>
+              ) : filteredProducts.length > 0 ? (
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -339,7 +460,14 @@ const AdminDashboard = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">{product.category}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">${product.price.toLocaleString('es-AR')}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                          ${product.price.toLocaleString('es-AR')}
+                          {product.discount > 0 && (
+                            <span className="ml-2 text-xs text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">
+                              -{product.discount}%
+                            </span>
+                          )}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className="px-3 py-1 inline-flex text-xs leading-5 font-bold rounded-full bg-green-100 text-green-800">
                             En Stock
@@ -347,8 +475,8 @@ const AdminDashboard = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-3">
-                            <button className="text-indigo-600 hover:text-indigo-900"><Edit2 size={18} /></button>
-                            <button className="text-red-600 hover:text-red-900"><Trash2 size={18} /></button>
+                            <button onClick={() => handleOpenModal(product)} className="text-indigo-600 hover:text-indigo-900"><Edit2 size={18} /></button>
+                            <button onClick={() => handleDeleteProduct(product.id)} className="text-red-600 hover:text-red-900"><Trash2 size={18} /></button>
                           </div>
                         </td>
                       </tr>
@@ -374,6 +502,106 @@ const AdminDashboard = () => {
         )}
 
       </div>
+
+      {/* Product Modal */}
+      {isProductModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={handleCloseModal}></div>
+            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+            <div className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
+                    <div className="flex justify-between items-center mb-5">
+                      <h3 className="text-xl leading-6 font-bold text-gray-900 font-montserrat" id="modal-title">
+                        {editingProduct ? 'Editar Producto' : 'Nuevo Producto'}
+                      </h3>
+                      <button type="button" onClick={handleCloseModal} className="text-gray-400 hover:text-gray-500">
+                        <X size={24} />
+                      </button>
+                    </div>
+                    <form onSubmit={handleProductSubmit} className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Nombre</label>
+                        <input required type="text" value={productForm.name} onChange={(e) => setProductForm({...productForm, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red" />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-1">Marca</label>
+                          <input required type="text" value={productForm.brand} onChange={(e) => setProductForm({...productForm, brand: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-1">Categoría</label>
+                          <select required value={productForm.category} onChange={(e) => setProductForm({...productForm, category: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red">
+                            <option value="Calzado">Calzado</option>
+                            <option value="Ropa">Ropa</option>
+                            <option value="Accesorios">Accesorios</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-1">Precio ($)</label>
+                          <input required type="number" min="0" value={productForm.price} onChange={(e) => setProductForm({...productForm, price: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-bold text-gray-700 mb-1">Descuento (%)</label>
+                          <input type="number" min="0" max="100" value={productForm.discount} onChange={(e) => setProductForm({...productForm, discount: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red" placeholder="0" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Imagen del Producto</label>
+                        <div className="flex items-center space-x-4">
+                          {productForm.image_url ? (
+                            <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200 shrink-0">
+                              <img src={productForm.image_url} alt="Preview" className="w-full h-full object-cover" />
+                              <button 
+                                type="button" 
+                                onClick={() => setProductForm({...productForm, image_url: ''})}
+                                className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                              >
+                                <X size={14} />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="w-24 h-24 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shrink-0">
+                              <Upload size={20} className="text-gray-400 mb-1" />
+                              <span className="text-[10px] text-gray-500 font-bold uppercase">Sin foto</span>
+                            </div>
+                          )}
+                          
+                          <div className="flex-1">
+                            <input 
+                              type="file" 
+                              accept="image/*"
+                              onChange={handleImageUpload}
+                              disabled={isUploading}
+                              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-red-50 file:text-brand-red hover:file:bg-red-100 transition-all cursor-pointer focus:outline-none" 
+                            />
+                            {isUploading && <p className="text-xs font-bold text-blue-600 mt-2 animate-pulse">Subiendo imagen a Supabase...</p>}
+                            {uploadError && <p className="text-xs font-bold text-red-500 mt-2">{uploadError}</p>}
+                            <p className="text-xs text-gray-400 mt-2">Se aceptan fotos de celular de alta calidad. Máx: 10MB.</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Descripción</label>
+                        <textarea required value={productForm.description} onChange={(e) => setProductForm({...productForm, description: e.target.value})} rows="3" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red"></textarea>
+                      </div>
+                      <div className="pt-4 flex justify-end space-x-3">
+                        <button type="button" onClick={handleCloseModal} className="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 font-bold hover:bg-gray-50">Cancelar</button>
+                        <button type="submit" disabled={isUploading || !productForm.image_url} className="px-4 py-2 bg-brand-red text-white rounded-xl font-bold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">{editingProduct ? 'Guardar Cambios' : 'Crear Producto'}</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
