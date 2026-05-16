@@ -164,7 +164,17 @@ const Checkout = () => {
                           <p className="text-gray-500 text-sm">Talle: {item.size} x {item.quantity}</p>
                         </div>
                       </div>
-                      <p className="font-extrabold text-brand-dark">${(item.product.price * item.quantity).toLocaleString('es-AR')}</p>
+                      <div className="flex items-center space-x-4">
+                        <p className="font-extrabold text-brand-dark">${(item.product.price * item.quantity).toLocaleString('es-AR')}</p>
+                        <button 
+                          type="button"
+                          onClick={() => removeItem(item.product.id, item.size)}
+                          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Eliminar producto"
+                        >
+                          <Trash2 size={20} />
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
