@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { ArrowLeft, ShoppingBag } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
 import useCartStore from '../store/useCartStore';
 import useProductStore from '../store/useProductStore';
 import SizeGuide from '../components/SizeGuide';
@@ -15,6 +15,8 @@ const ProductDetail = () => {
   const product = getProductById(id);
   const [selectedSize, setSelectedSize] = useState(null);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const scrollContainerRef = useRef(null);
   
   useEffect(() => {
     if (products.length === 0) {
@@ -27,6 +29,27 @@ const ProductDetail = () => {
   const sizes = product?.sizes && product.sizes.length > 0 
     ? product.sizes 
     : ['Talle Único'];
+
+  const allImages = product ? [product.image_url, ...(product.additional_images || [])] : [];
+
+  const scrollToIndex = (index) => {
+    if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      container.scrollTo({
+        left: index * container.offsetWidth,
+        behavior: 'smooth'
+      });
+      setCurrentImageIndex(index);
+    }
+  };
+
+  const handleScroll = (e) => {
+    const container = e.target;
+    const index = Math.round(container.scrollLeft / container.offsetWidth);
+    if (index !== currentImageIndex) {
+      setCurrentImageIndex(index);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -64,11 +87,51 @@ const ProductDetail = () => {
         </Link>
 
         <div className="flex flex-col md:flex-row gap-12">
-          {/* Imagen */}
-          <div className="w-full md:w-1/2">
-            <div className="bg-gray-100 rounded-3xl overflow-hidden shadow-sm">
-              <img src={product.image_url} alt={product.name} className="w-full h-auto object-cover" />
+          {/* Imágenes */}
+          <div className="w-full md:w-1/2 relative group">
+            <div 
+              ref={scrollContainerRef}
+              onScroll={handleScroll}
+              className="flex overflow-x-auto snap-x snap-mandatory rounded-3xl shadow-sm bg-gray-100 [&::-webkit-scrollbar]:hidden"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              {allImages.map((img, idx) => (
+                <div key={idx} className="w-full shrink-0 snap-center relative">
+                  <img src={img} alt={`${product.name} - ${idx + 1}`} className="w-full h-full object-cover" />
+                </div>
+              ))}
             </div>
+
+            {/* Flechas (Sólo en Desktop si hay más de 1 imagen) */}
+            {allImages.length > 1 && (
+              <>
+                <button 
+                  onClick={() => scrollToIndex((currentImageIndex - 1 + allImages.length) % allImages.length)}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 text-gray-800 p-2 rounded-full shadow-lg hover:bg-white transition-all opacity-0 group-hover:opacity-100 hidden md:flex items-center justify-center hover:scale-110"
+                >
+                  <ChevronLeft size={24} />
+                </button>
+                <button 
+                  onClick={() => scrollToIndex((currentImageIndex + 1) % allImages.length)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 text-gray-800 p-2 rounded-full shadow-lg hover:bg-white transition-all opacity-0 group-hover:opacity-100 hidden md:flex items-center justify-center hover:scale-110"
+                >
+                  <ChevronRight size={24} />
+                </button>
+              </>
+            )}
+
+            {/* Puntos Indicadores */}
+            {allImages.length > 1 && (
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 bg-black/30 backdrop-blur-md px-3 py-2 rounded-full">
+                {allImages.map((_, idx) => (
+                  <button 
+                    key={idx}
+                    onClick={() => scrollToIndex(idx)}
+                    className={`h-2 rounded-full transition-all duration-300 ${idx === currentImageIndex ? 'bg-white w-6' : 'bg-white/50 w-2 hover:bg-white/80'}`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Detalles */}

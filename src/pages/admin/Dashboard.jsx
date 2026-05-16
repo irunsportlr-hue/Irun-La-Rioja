@@ -56,7 +56,7 @@ const AdminDashboard = () => {
   // Modal State
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [productForm, setProductForm] = useState({ name: '', price: '', discount: 0, category: 'Calzado', brand: '', image_url: '', description: '', sizes: [] });
+  const [productForm, setProductForm] = useState({ name: '', price: '', discount: 0, category: 'Calzado', brand: '', image_url: '', description: '', sizes: [], additional_images: [] });
   const [selectedSizeCategory, setSelectedSizeCategory] = useState('Calzado');
   
   // Image Upload State
@@ -70,10 +70,10 @@ const AdminDashboard = () => {
     setUploadError('');
     if (product) {
       setEditingProduct(product);
-      setProductForm({ ...product, discount: product.discount || 0, sizes: product.sizes || [] });
+      setProductForm({ ...product, discount: product.discount || 0, sizes: product.sizes || [], additional_images: product.additional_images || [] });
     } else {
       setEditingProduct(null);
-      setProductForm({ name: '', price: '', discount: 0, category: 'Calzado', brand: '', image_url: '', description: '', sizes: [] });
+      setProductForm({ name: '', price: '', discount: 0, category: 'Calzado', brand: '', image_url: '', description: '', sizes: [], additional_images: [] });
     }
     setIsProductModalOpen(true);
   };
@@ -123,6 +123,48 @@ const AdminDashboard = () => {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleAdditionalImageUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (!files || files.length === 0) return;
+
+    try {
+      setIsUploading(true);
+      setUploadError('');
+      
+      const newUrls = [];
+      for (const file of files) {
+        if (file.size > 10 * 1024 * 1024) continue; // skip heavy files
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `gallery/${fileName}`;
+
+        const { error: supabaseError } = await supabase.storage.from('products').upload(filePath, file, { upsert: false });
+        if (supabaseError) throw supabaseError;
+        
+        const { data: publicUrlData } = supabase.storage.from('products').getPublicUrl(filePath);
+        newUrls.push(publicUrlData.publicUrl);
+      }
+
+      setProductForm(prev => ({ 
+        ...prev, 
+        additional_images: [...(prev.additional_images || []), ...newUrls] 
+      }));
+    } catch (error) {
+      console.error('Error al subir adicionales:', error);
+      setUploadError('Error al subir imagen(es) adicional(es): ' + error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const removeAdditionalImage = (index) => {
+    setProductForm(prev => {
+      const newImages = [...(prev.additional_images || [])];
+      newImages.splice(index, 1);
+      return { ...prev, additional_images: newImages };
+    });
   };
 
   const toggleSize = (size) => {
@@ -772,6 +814,44 @@ const AdminDashboard = () => {
                           </div>
                         </div>
                       </div>
+
+                      {/* Galería Adicional */}
+                      <div>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Galería de Imágenes Adicionales (Opcional)</label>
+                        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                          {(productForm.additional_images || []).length > 0 && (
+                            <div className="flex flex-wrap gap-4 mb-4">
+                              {(productForm.additional_images || []).map((imgUrl, idx) => (
+                                <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 shrink-0">
+                                  <img src={imgUrl} alt={`Adicional ${idx}`} className="w-full h-full object-cover" />
+                                  <button 
+                                    type="button" 
+                                    onClick={() => removeAdditionalImage(idx)}
+                                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                                  >
+                                    <X size={12} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          
+                          <label className="flex flex-col items-center justify-center w-full px-4 py-4 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-white transition-colors">
+                            <Upload size={20} className="text-gray-400 mb-1" />
+                            <span className="text-sm font-bold text-brand-dark">Añadir más fotos</span>
+                            <span className="text-xs text-gray-500">Puedes seleccionar varias fotos a la vez</span>
+                            <input 
+                              type="file" 
+                              accept="image/*"
+                              multiple
+                              onChange={handleAdditionalImageUpload}
+                              disabled={isUploading}
+                              className="hidden" 
+                            />
+                          </label>
+                        </div>
+                      </div>
+
                       <div>
                         <label className="block text-sm font-bold text-gray-700 mb-1">Descripción</label>
                         <textarea required value={productForm.description} onChange={(e) => setProductForm({...productForm, description: e.target.value})} rows="3" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red"></textarea>
