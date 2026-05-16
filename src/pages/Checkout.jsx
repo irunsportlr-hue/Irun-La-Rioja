@@ -3,8 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2, Smartphone, CreditCard, ShoppingBag, MapPin, CheckCircle2 } from 'lucide-react';
 import useCartStore from '../store/useCartStore';
 import useOrderStore from '../store/useOrderStore';
+import useSettingsStore from '../store/useSettingsStore';
 import { supabase } from '../lib/supabaseClient';
-import { initMercadoPago, Wallet } from '@mercadopago/sdk-react';
+import { initMercadoPago } from '@mercadopago/sdk-react';
+
 
 initMercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY || '', { locale: 'es-AR' });
 
@@ -12,10 +14,15 @@ const Checkout = () => {
   const navigate = useNavigate();
   const { items, removeItem, updateQuantity, getCartTotal, clearCart } = useCartStore();
   const addOrder = useOrderStore(state => state.addOrder);
+  const { shippingCost, fetchSettings } = useSettingsStore();
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('mercadopago'); // mercadopago | tarjeta
-  const [preferenceId, setPreferenceId] = useState(null);
+
+  // Fetch settings on load
+  useState(() => {
+    fetchSettings();
+  }, []);
 
   const [formData, setFormData] = useState({
     nombre: '',
@@ -28,7 +35,7 @@ const Checkout = () => {
 
   const subtotal = getCartTotal();
   const whatsappNumber = '5493804120296'; // Número de Muruchi SAUL saul;
-  const envio = 0;
+  const envio = shippingCost || 0;
   const total = subtotal + envio;
 
   const handleInputChange = (e) => {
@@ -82,13 +89,13 @@ const Checkout = () => {
       // 3. Crear preferencia en Mercado Pago usando Edge Function
       if (paymentMethod === 'mercadopago') {
         const { data: preferenceData, error: prefError } = await supabase.functions.invoke('create-preference', {
-          body: { orderId: order.id, items: items, customer: formData, returnUrl: window.location.origin }
+          body: { orderId: order.id, items: items, customer: formData, returnUrl: window.location.origin, shippingCost: envio }
         });
 
         if (prefError) throw prefError;
 
-        setPreferenceId(preferenceData.id);
-        setIsProcessing(false);
+        // Redirect immediately to Mercado Pago Checkout Pro
+        window.location.href = preferenceData.init_point;
       } else {
         // Otros métodos de pago
         clearCart();
@@ -249,8 +256,12 @@ const Checkout = () => {
                   <span className="font-semibold text-gray-800">${subtotal.toLocaleString('es-AR')}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
-                  <span>Envío a La Rioja</span>
-                  <span className="text-green-600 font-semibold">Gratis</span>
+                  <span>Envío</span>
+                  {envio > 0 ? (
+                    <span className="font-semibold text-gray-800">${envio.toLocaleString('es-AR')}</span>
+                  ) : (
+                    <span className="text-green-600 font-semibold">Gratis</span>
+                  )}
                 </div>
                 <div className="flex justify-between items-center text-2xl font-black text-brand-dark pt-6 border-t mt-6">
                   <span>Total</span>
@@ -259,19 +270,13 @@ const Checkout = () => {
               </div>
 
               <div className="pt-2">
-                {preferenceId ? (
-                  <div className="mt-4">
-                    <Wallet initialization={{ preferenceId, redirectMode: 'modal' }} />
-                  </div>
-                ) : (
-                  <button 
-                    type="submit" 
-                    form="checkout-form"
-                    className={`w-full py-5 text-white font-bold rounded-xl text-xl flex items-center justify-center transition-all shadow-lg shadow-black/20 hover:-translate-y-1 ${paymentMethod === 'mercadopago' ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-500/30' : 'bg-brand-dark hover:bg-black shadow-gray-900/30'}`}
-                  >
-                    Pagar ${total.toLocaleString('es-AR')}
-                  </button>
-                )}
+                <button 
+                  type="submit" 
+                  form="checkout-form"
+                  className={`w-full py-5 text-white font-bold rounded-xl text-xl flex items-center justify-center transition-all shadow-lg shadow-black/20 hover:-translate-y-1 ${paymentMethod === 'mercadopago' ? 'bg-blue-500 hover:bg-blue-600 shadow-blue-500/30' : 'bg-brand-dark hover:bg-black shadow-gray-900/30'}`}
+                >
+                  Pagar ${total.toLocaleString('es-AR')}
+                </button>
                 <div className="mt-4 bg-gray-50 p-4 rounded-lg text-xs text-gray-500 flex items-start">
                   <CheckCircle2 className="text-green-500 mr-2 shrink-0" size={16} />
                   <span>Estás en un entorno seguro y encriptado. Pago procesado y protegido por pasarela oficial.</span>

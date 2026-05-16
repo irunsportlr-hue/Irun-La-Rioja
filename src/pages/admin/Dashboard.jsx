@@ -1,8 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Package, DollarSign, LogOut, Plus, Edit2, Trash2, MapPin, CheckCircle, Clock, Truck, Home, Search, X, Menu, Upload } from 'lucide-react';
+import { Package, DollarSign, LogOut, Plus, Edit2, Trash2, MapPin, CheckCircle, Clock, Truck, Home, Search, X, Menu, Upload, Settings, Save } from 'lucide-react';
 import useOrderStore from '../../store/useOrderStore';
 import useProductStore from '../../store/useProductStore';
+import useSettingsStore from '../../store/useSettingsStore';
 import { supabase } from '../../lib/supabaseClient';
+
+const SIZES_OPTIONS = {
+  'Calzado': ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45'],
+  'Ropa (Letras)': ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL'],
+  'Ropa (Números)': ['1', '2', '3', '4', '5', '6', '7', '8'],
+  'Niños': ['0', '2', '4', '6', '8', '10', '12', '14', '16'],
+  'Único': ['Talle Único']
+};
 
 const AdminDashboard = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -11,6 +20,11 @@ const AdminDashboard = () => {
   const [loginError, setLoginError] = useState(false);
   const [activeTab, setActiveTab] = useState('ventas');
   
+  // Settings
+  const { shippingCost, banners, fetchSettings, updateShippingCost, updateBanners } = useSettingsStore();
+  const [newShippingCostInput, setNewShippingCostInput] = useState('');
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+
   // Órdenes
   const { orders, updateOrderStatus } = useOrderStore();
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
@@ -27,13 +41,23 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (isAuthenticated) {
       fetchProducts();
+      fetchSettings().then(() => {
+        setNewShippingCostInput(useSettingsStore.getState().shippingCost);
+      });
     }
   }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (shippingCost !== undefined) {
+      setNewShippingCostInput(shippingCost);
+    }
+  }, [shippingCost]);
 
   // Modal State
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [productForm, setProductForm] = useState({ name: '', price: '', discount: 0, category: 'Calzado', brand: '', image_url: '', description: '' });
+  const [productForm, setProductForm] = useState({ name: '', price: '', discount: 0, category: 'Calzado', brand: '', image_url: '', description: '', sizes: [] });
+  const [selectedSizeCategory, setSelectedSizeCategory] = useState('Calzado');
   
   // Image Upload State
   const [isUploading, setIsUploading] = useState(false);
@@ -46,10 +70,10 @@ const AdminDashboard = () => {
     setUploadError('');
     if (product) {
       setEditingProduct(product);
-      setProductForm({ ...product, discount: product.discount || 0 });
+      setProductForm({ ...product, discount: product.discount || 0, sizes: product.sizes || [] });
     } else {
       setEditingProduct(null);
-      setProductForm({ name: '', price: '', discount: 0, category: 'Calzado', brand: '', image_url: '', description: '' });
+      setProductForm({ name: '', price: '', discount: 0, category: 'Calzado', brand: '', image_url: '', description: '', sizes: [] });
     }
     setIsProductModalOpen(true);
   };
@@ -99,6 +123,57 @@ const AdminDashboard = () => {
     } finally {
       setIsUploading(false);
     }
+  };
+
+  const toggleSize = (size) => {
+    setProductForm(prev => {
+      const sizes = prev.sizes || [];
+      if (sizes.includes(size)) {
+        return { ...prev, sizes: sizes.filter(s => s !== size) };
+      } else {
+        return { ...prev, sizes: [...sizes, size] };
+      }
+    });
+  };
+
+  const handleBannerUpload = async (index, e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingBanner(true);
+      if (file.size > 10 * 1024 * 1024) throw new Error('La imagen es muy pesada. Máximo 10MB.');
+      
+      const fileExt = file.name.split('.').pop();
+      const fileName = `banner_${Date.now()}_${index}.${fileExt}`;
+      const filePath = `banners/${fileName}`;
+
+      const { error: supabaseError } = await supabase.storage.from('products').upload(filePath, file);
+      if (supabaseError) throw supabaseError;
+
+      const { data: publicUrlData } = supabase.storage.from('products').getPublicUrl(filePath);
+      
+      const newBanners = [...banners];
+      // Si el index es mayor a la longitud actual, se añade al final
+      if (index >= newBanners.length) {
+         newBanners.push(publicUrlData.publicUrl);
+      } else {
+         newBanners[index] = publicUrlData.publicUrl;
+      }
+      await updateBanners(newBanners);
+    } catch (error) {
+      console.error('Error al subir banner:', error);
+      alert(error.message || 'Error al subir la imagen.');
+    } finally {
+      setIsUploadingBanner(false);
+    }
+  };
+
+  const removeBanner = async (index) => {
+    if (!window.confirm('¿Seguro que deseas eliminar este banner?')) return;
+    const newBanners = [...banners];
+    newBanners.splice(index, 1);
+    await updateBanners(newBanners);
   };
 
   const handleProductSubmit = (e) => {
@@ -262,6 +337,13 @@ const AdminDashboard = () => {
           >
             <Package size={20} className="mr-3" />
             Catálogo
+          </button>
+          <button 
+            onClick={() => { setActiveTab('configuracion'); setIsMobileMenuOpen(false); }}
+            className={`w-full flex items-center px-4 py-3 rounded-xl transition-all font-semibold ${activeTab === 'configuracion' ? 'bg-brand-red text-white shadow-lg shadow-red-500/20' : 'text-gray-400 hover:bg-gray-800 hover:text-white'}`}
+          >
+            <Settings size={20} className="mr-3" />
+            Configuración
           </button>
         </nav>
 
@@ -501,6 +583,111 @@ const AdminDashboard = () => {
           </div>
         )}
 
+        {/* ========== PESTAÑA DE CONFIGURACION ========== */}
+        {activeTab === 'configuracion' && (
+          <div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+              <h1 className="text-3xl font-bold text-gray-900 font-montserrat">Configuración de la Tienda</h1>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden max-w-2xl">
+              <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center">
+                <Truck className="text-brand-red mr-3" size={24} />
+                <h2 className="text-xl font-bold text-gray-900">Costo de Envío</h2>
+              </div>
+              <div className="p-6">
+                <p className="text-gray-500 mb-6">
+                  Establece un precio fijo para el costo de envío que se aplicará a todos los pedidos (ideal para envíos por Correo Argentino a Sucursal). 
+                  Este monto se sumará al total de la compra del cliente automáticamente.
+                </p>
+                <div className="flex items-end space-x-4">
+                  <div className="flex-1">
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Costo Fijo de Envío ($)</label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <DollarSign size={18} className="text-gray-400" />
+                      </div>
+                      <input 
+                        type="number" 
+                        min="0"
+                        value={newShippingCostInput}
+                        onChange={(e) => setNewShippingCostInput(e.target.value)}
+                        className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red text-lg font-bold text-gray-900" 
+                      />
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      updateShippingCost(Number(newShippingCostInput));
+                      alert('Costo de envío actualizado con éxito.');
+                    }}
+                    className="btn-primary flex items-center px-6 py-3 rounded-xl h-[50px]"
+                  >
+                    <Save size={20} className="mr-2" />
+                    Guardar
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* BANNERS DE PUBLICIDAD */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden max-w-4xl mt-8">
+              <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+                <div className="flex items-center">
+                  <Upload className="text-brand-red mr-3" size={24} />
+                  <h2 className="text-xl font-bold text-gray-900">Pantallas de Publicidad (Home)</h2>
+                </div>
+                {isUploadingBanner && <span className="text-sm font-bold text-blue-500 animate-pulse">Subiendo imagen...</span>}
+              </div>
+              <div className="p-6">
+                <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-6">
+                  <h4 className="font-bold text-blue-900 flex items-center mb-1"><CheckCircle size={16} className="mr-1"/> Recomendación PRO</h4>
+                  <p className="text-sm text-blue-800">
+                    Sube imágenes de <strong>1920x600 píxeles</strong> en formato <strong>JPG, PNG o WEBP</strong> (máx 10MB). Estas imágenes aparecerán en el carrusel de la página principal. El sistema ajustará y recortará automáticamente la imagen para móviles y PC.
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  {[0, 1, 2, 3, 4].map((index) => {
+                    const bannerUrl = banners[index];
+                    return (
+                      <div key={index} className="flex flex-col md:flex-row gap-4 items-center p-4 border border-gray-200 rounded-xl bg-white">
+                        <div className="w-full md:w-1/4">
+                          <h3 className="font-bold text-gray-700">Pantalla {index + 1}</h3>
+                        </div>
+                        <div className="w-full md:w-3/4 flex items-center gap-4">
+                          {bannerUrl ? (
+                            <>
+                              <div className="relative w-40 h-16 rounded overflow-hidden border border-gray-200 shrink-0">
+                                <img src={bannerUrl} alt={`Banner ${index + 1}`} className="w-full h-full object-cover" />
+                              </div>
+                              <button 
+                                onClick={() => removeBanner(index)}
+                                className="flex items-center text-sm font-bold text-red-500 hover:text-red-700 transition-colors ml-auto"
+                              >
+                                <Trash2 size={16} className="mr-1" /> Eliminar
+                              </button>
+                            </>
+                          ) : (
+                            <div className="w-full">
+                              <label className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                                <Upload size={18} className="text-gray-400 mr-2" />
+                                <span className="text-sm font-bold text-gray-500">Haz clic para subir imagen</span>
+                                <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBannerUpload(index, e)} disabled={isUploadingBanner} />
+                              </label>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+          </div>
+        )}
+
       </div>
 
       {/* Product Modal */}
@@ -589,7 +776,46 @@ const AdminDashboard = () => {
                         <label className="block text-sm font-bold text-gray-700 mb-1">Descripción</label>
                         <textarea required value={productForm.description} onChange={(e) => setProductForm({...productForm, description: e.target.value})} rows="3" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red"></textarea>
                       </div>
-                      <div className="pt-4 flex justify-end space-x-3">
+
+                      {/* --- SECCIÓN DE TALLES --- */}
+                      <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 mt-4">
+                        <div className="flex justify-between items-center mb-3">
+                          <label className="block text-sm font-bold text-gray-700">Talles Disponibles</label>
+                          <select 
+                            value={selectedSizeCategory}
+                            onChange={(e) => setSelectedSizeCategory(e.target.value)}
+                            className="text-sm border border-gray-300 rounded-lg focus:ring-brand-red focus:border-brand-red py-1.5 px-3 font-semibold bg-white"
+                          >
+                            {Object.keys(SIZES_OPTIONS).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                          </select>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {SIZES_OPTIONS[selectedSizeCategory].map(size => {
+                            const isSelected = (productForm.sizes || []).includes(size);
+                            return (
+                              <button
+                                type="button"
+                                key={size}
+                                onClick={() => toggleSize(size)}
+                                className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${
+                                  isSelected 
+                                  ? 'bg-brand-dark text-white border-brand-dark shadow-md' 
+                                  : 'bg-white text-gray-600 border-gray-300 hover:border-brand-dark'
+                                }`}
+                              >
+                                {size}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="text-xs text-gray-500 mt-3">
+                          Selecciona los talles que tienes en stock. Se mostrarán al cliente en la página del producto. <br/>
+                          Seleccionados: <span className="font-bold text-brand-red">{(productForm.sizes || []).join(', ') || 'Ninguno'}</span>
+                        </p>
+                      </div>
+                      {/* ----------------------- */}
+
+                      <div className="pt-4 flex justify-end space-x-3 mt-6">
                         <button type="button" onClick={handleCloseModal} className="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 font-bold hover:bg-gray-50">Cancelar</button>
                         <button type="submit" disabled={isUploading || !productForm.image_url} className="px-4 py-2 bg-brand-red text-white rounded-xl font-bold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">{editingProduct ? 'Guardar Cambios' : 'Crear Producto'}</button>
                       </div>

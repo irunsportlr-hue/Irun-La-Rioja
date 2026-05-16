@@ -14,7 +14,7 @@ serve(async (req) => {
 
   let preferenceBody;
   try {
-    const { orderId, items, customer, returnUrl } = await req.json();
+    const { orderId, items, customer, returnUrl, shippingCost } = await req.json();
     const baseUrl = returnUrl || req.headers.get('origin') || 'http://localhost:5173';
 
     // Validar token de Mercado Pago
@@ -35,6 +35,16 @@ serve(async (req) => {
       unit_price: Number(item.product.price),
       currency_id: 'ARS',
     }));
+
+    if (shippingCost && Number(shippingCost) > 0) {
+      mpItems.push({
+        id: 'shipping',
+        title: 'Costo de Envío',
+        quantity: 1,
+        unit_price: Number(shippingCost),
+        currency_id: 'ARS'
+      });
+    }
 
     preferenceBody = {
       items: mpItems,

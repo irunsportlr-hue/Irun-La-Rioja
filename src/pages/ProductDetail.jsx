@@ -24,8 +24,9 @@ const ProductDetail = () => {
 
   const addItem = useCartStore(state => state.addItem);
 
-  const sizes = product?.category === 'Calzado' ? ['39', '40', '41', '42', '43', '44'] : 
-                product?.category === 'Ropa' ? ['S', 'M', 'L', 'XL'] : ['Único'];
+  const sizes = product?.sizes && product.sizes.length > 0 
+    ? product.sizes 
+    : ['Talle Único'];
 
   if (isLoading) {
     return (

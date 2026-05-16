@@ -1,37 +1,24 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, TrendingUp, ShieldCheck, Truck } from 'lucide-react';
+import { useEffect } from 'react';
 
 import useProductStore from '../store/useProductStore';
+import useSettingsStore from '../store/useSettingsStore';
+import BannerCarousel from '../components/BannerCarousel';
 
 const Home = () => {
   const products = useProductStore(state => state.products);
   const homeProducts = products.slice(0, 4);
+  const { banners, fetchSettings } = useSettingsStore();
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
   return (
     <div className="w-full">
-      {/* Hero Section */}
-      <section className="relative bg-brand-light">
-        <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent z-10" />
-        <div className="relative h-[600px] flex items-center">
-          <img 
-            src="https://images.unsplash.com/photo-1556906781-9a412961c28c?auto=format&fit=crop&q=80&w=2000" 
-            alt="Hero Background" 
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-          
-          <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-            <h1 className="text-5xl md:text-7xl font-extrabold text-white mb-4 font-montserrat tracking-tight leading-tight">
-              SUPERA TUS <br/> <span className="text-brand-red">LÍMITES</span>
-            </h1>
-            <p className="text-xl text-gray-200 mb-8 max-w-xl font-light">
-              La mejor selección de calzado e indumentaria deportiva en La Rioja. Encuentra tu estilo, mejora tu rendimiento.
-            </p>
-            <Link to="/catalog" className="inline-flex items-center btn-primary text-lg px-8 py-4">
-              Ver Catálogo
-              <ArrowRight className="ml-2" size={24} />
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* Hero Section - Banner Carousel */}
+      <BannerCarousel banners={banners} />
 
       {/* Features */}
       <section className="py-16 bg-white">
