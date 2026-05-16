@@ -26,7 +26,7 @@ const AdminDashboard = () => {
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
 
   // Órdenes
-  const { orders, updateOrderStatus } = useOrderStore();
+  const { orders, updateOrderStatus, fetchOrders } = useOrderStore();
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   
   // Catálogo
@@ -41,6 +41,7 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (isAuthenticated) {
       fetchProducts();
+      fetchOrders();
       fetchSettings().then(() => {
         setNewShippingCostInput(useSettingsStore.getState().shippingCost);
       });
