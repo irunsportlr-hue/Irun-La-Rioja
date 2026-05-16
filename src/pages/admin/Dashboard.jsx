@@ -21,8 +21,9 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('ventas');
   
   // Settings
-  const { shippingCost, banners, fetchSettings, updateShippingCost, updateBanners } = useSettingsStore();
+  const { shippingCost, localShippingCost, banners, fetchSettings, updateShippingCost, updateLocalShippingCost, updateBanners } = useSettingsStore();
   const [newShippingCostInput, setNewShippingCostInput] = useState('');
+  const [newLocalShippingCostInput, setNewLocalShippingCostInput] = useState('');
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
 
   // Órdenes
@@ -44,6 +45,7 @@ const AdminDashboard = () => {
       fetchOrders();
       fetchSettings().then(() => {
         setNewShippingCostInput(useSettingsStore.getState().shippingCost);
+        setNewLocalShippingCostInput(useSettingsStore.getState().localShippingCost);
       });
     }
   }, [isAuthenticated]);
@@ -52,7 +54,10 @@ const AdminDashboard = () => {
     if (shippingCost !== undefined) {
       setNewShippingCostInput(shippingCost);
     }
-  }, [shippingCost]);
+    if (localShippingCost !== undefined) {
+      setNewLocalShippingCostInput(localShippingCost);
+    }
+  }, [shippingCost, localShippingCost]);
 
   // Modal State
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -643,32 +648,57 @@ const AdminDashboard = () => {
                   Establece un precio fijo para el costo de envío que se aplicará a todos los pedidos (ideal para envíos por Correo Argentino a Sucursal). 
                   Este monto se sumará al total de la compra del cliente automáticamente.
                 </p>
-                <div className="flex items-end space-x-4">
-                  <div className="flex-1">
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Costo Fijo de Envío ($)</label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <DollarSign size={18} className="text-gray-400" />
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-end space-x-4">
+                    <div className="flex-1">
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Costo de Envío Nacional ($)</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <DollarSign size={18} className="text-gray-400" />
+                        </div>
+                        <input 
+                          type="number" 
+                          min="0"
+                          value={newShippingCostInput}
+                          onChange={(e) => setNewShippingCostInput(e.target.value)}
+                          className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red text-lg font-bold text-gray-900" 
+                          placeholder="Ej: 9000"
+                        />
                       </div>
-                      <input 
-                        type="number" 
-                        min="0"
-                        value={newShippingCostInput}
-                        onChange={(e) => setNewShippingCostInput(e.target.value)}
-                        className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red text-lg font-bold text-gray-900" 
-                      />
+                      <p className="text-xs text-gray-500 mt-1">Para cualquier código postal excepto 5300.</p>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => {
-                      updateShippingCost(Number(newShippingCostInput));
-                      alert('Costo de envío actualizado con éxito.');
-                    }}
-                    className="btn-primary flex items-center px-6 py-3 rounded-xl h-[50px]"
-                  >
-                    <Save size={20} className="mr-2" />
-                    Guardar
-                  </button>
+
+                  <div className="flex items-end space-x-4">
+                    <div className="flex-1">
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Costo de Envío Local - La Rioja (CP 5300) ($)</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <DollarSign size={18} className="text-gray-400" />
+                        </div>
+                        <input 
+                          type="number" 
+                          min="0"
+                          value={newLocalShippingCostInput}
+                          onChange={(e) => setNewLocalShippingCostInput(e.target.value)}
+                          className="w-full pl-10 pr-3 py-3 border border-blue-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg font-bold text-blue-900 bg-blue-50" 
+                          placeholder="Ej: 1500"
+                        />
+                      </div>
+                      <p className="text-xs text-blue-500 mt-1">Precio exclusivo para el CP 5300.</p>
+                    </div>
+                    <button 
+                      onClick={async () => {
+                        await updateShippingCost(Number(newShippingCostInput));
+                        await updateLocalShippingCost(Number(newLocalShippingCostInput));
+                        alert('Costos de envío actualizados con éxito.');
+                      }}
+                      className="btn-primary flex items-center px-6 py-3 rounded-xl h-[50px] shrink-0"
+                    >
+                      <Save size={20} className="mr-2" />
+                      Guardar Precios
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

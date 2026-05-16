@@ -14,7 +14,7 @@ const Checkout = () => {
   const navigate = useNavigate();
   const { items, removeItem, updateQuantity, getCartTotal, clearCart } = useCartStore();
   const addOrder = useOrderStore(state => state.addOrder);
-  const { shippingCost, fetchSettings } = useSettingsStore();
+  const { shippingCost, localShippingCost, fetchSettings } = useSettingsStore();
   
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('mercadopago'); // mercadopago | tarjeta
@@ -30,12 +30,15 @@ const Checkout = () => {
     telefono: '',
     direccion: '',
     barrio: '',
+    codigoPostal: '',
     ubicacionUrl: '',
   });
 
   const subtotal = getCartTotal();
   const whatsappNumber = '5493804120296'; // Número de Muruchi SAUL saul;
-  const envio = shippingCost || 0;
+  
+  const isLocalShipping = formData.codigoPostal === '5300';
+  const envio = isLocalShipping ? (localShippingCost || 0) : (shippingCost || 0);
   const total = subtotal + envio;
 
   const handleInputChange = (e) => {
@@ -209,14 +212,20 @@ const Checkout = () => {
                     <label className="block text-sm font-bold text-gray-700 mb-1">Dirección Exacta</label>
                     <input required name="direccion" value={formData.direccion} onChange={handleInputChange} type="text" className="w-full py-3 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-red outline-none" placeholder="Av. Principal 1234" />
                   </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Barrio</label>
-                    <input required name="barrio" value={formData.barrio} onChange={handleInputChange} type="text" className="w-full py-3 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-red outline-none" placeholder="Centro" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Barrio</label>
+                      <input required name="barrio" value={formData.barrio} onChange={handleInputChange} type="text" className="w-full py-3 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-red outline-none" placeholder="Centro" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1">C.P.</label>
+                      <input required name="codigoPostal" value={formData.codigoPostal} onChange={handleInputChange} type="text" className="w-full py-3 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-red outline-none" placeholder="Ej: 5300" />
+                    </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Link de Ubicación (Google Maps) o Código Postal</label>
+                  <label className="block text-sm font-bold text-gray-700 mb-1">Link de Ubicación (Google Maps)</label>
                   <input name="ubicacionUrl" value={formData.ubicacionUrl} onChange={handleInputChange} type="text" className="w-full py-3 px-4 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-brand-red outline-none" placeholder="Pega aquí el link de Maps para encontrar más fácil" />
                   <p className="text-xs text-gray-500 mt-1">Opcional pero recomendado para Motoenvíos rápidos.</p>
                 </div>
@@ -266,7 +275,7 @@ const Checkout = () => {
                   <span className="font-semibold text-gray-800">${subtotal.toLocaleString('es-AR')}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
-                  <span>Envío</span>
+                  <span>Envío {isLocalShipping && <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full ml-1">Local 5300</span>}</span>
                   {envio > 0 ? (
                     <span className="font-semibold text-gray-800">${envio.toLocaleString('es-AR')}</span>
                   ) : (

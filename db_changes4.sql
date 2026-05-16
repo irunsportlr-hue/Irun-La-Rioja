@@ -1,0 +1,1 @@
+ALTER TABLE settings ADD COLUMN IF NOT EXISTS local_shipping_cost NUMERIC DEFAULT 0;
