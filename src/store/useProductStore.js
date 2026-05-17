@@ -39,7 +39,7 @@ const useProductStore = create((set, get) => ({
     
     return get().products.filter(product => {
       return (
-        product.name.toLowerCase().includes(lowerQuery) || 
+        (product.name && product.name.toLowerCase().includes(lowerQuery)) || 
         (product.brand && product.brand.toLowerCase().includes(lowerQuery)) || 
         (product.category && product.category.toLowerCase().includes(lowerQuery))
       );

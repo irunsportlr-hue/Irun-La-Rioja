@@ -13,11 +13,17 @@ const Navbar = () => {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchProducts = useProductStore(state => state.searchProducts);
+  const products = useProductStore(state => state.products);
+  const fetchProducts = useProductStore(state => state.fetchProducts);
   const searchRef = useRef(null);
   const navigate = useNavigate();
 
-  // Cerrar el buscador al clickear afuera
+  // Cerrar el buscador al clickear afuera y asegurar carga de productos
   useEffect(() => {
+    if (products.length === 0) {
+      fetchProducts();
+    }
+    
     const handleClickOutside = (event) => {
       if (searchRef.current && !searchRef.current.contains(event.target)) {
         setIsSearchFocused(false);
@@ -45,16 +51,53 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 w-full bg-white z-50 border-b border-gray-100 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-20 items-center">
+    <header className="fixed top-0 w-full z-50">
+      {/* Top Bar PRO */}
+      <div className="bg-gradient-to-r from-gray-900 via-brand-dark to-black text-white py-2 px-4 sm:px-6 lg:px-8 relative overflow-hidden group border-b border-gray-800 shadow-md">
+        {/* Animated Background Glow */}
+        <div className="absolute inset-0 bg-gradient-to-r from-brand-red/20 via-transparent to-brand-red/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+        
+        <div className="max-w-7xl mx-auto flex justify-between items-center relative z-10">
           
-          {/* Logo */}
-          <div className="flex-shrink-0 flex items-center">
-            <Link to="/" className="text-2xl font-bold font-montserrat tracking-tight">
-              I-RUN <span className="text-brand-red">/</span> LA RIOJA
-            </Link>
+          <div className="flex items-center space-x-5">
+            <a href="#" className="text-gray-400 hover:text-pink-500 hover:scale-125 hover:rotate-12 transition-all duration-300 drop-shadow-md hover:drop-shadow-[0_0_12px_rgba(236,72,153,0.8)]">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
+            </a>
+            <a href="#" className="text-gray-400 hover:text-blue-500 hover:scale-125 hover:-rotate-12 transition-all duration-300 drop-shadow-md hover:drop-shadow-[0_0_12px_rgba(59,130,246,0.8)]">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+            </a>
           </div>
+
+          {/* Center Message */}
+          <div className="hidden sm:flex text-[11px] md:text-xs font-bold tracking-[0.2em] uppercase text-gray-300 items-center justify-center">
+            <span className="inline-block animate-pulse text-brand-red mr-2">✦</span>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-gray-200 via-white to-gray-200 hover:text-white transition-colors duration-300 cursor-default">
+              ENVÍOS GRATIS DESDE $85.000
+            </span>
+            <span className="inline-block animate-pulse text-brand-red ml-2">✦</span>
+          </div>
+
+          {/* Right Action */}
+          <div className="text-[11px] font-bold flex items-center justify-end w-[120px]">
+            <div className="relative flex items-center justify-center w-3 h-3 mr-2">
+              <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75 animate-ping"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+            </div>
+            <span className="text-gray-300 hover:text-white transition-colors cursor-pointer">SOPORTE 24/7</span>
+          </div>
+        </div>
+      </div>
+
+      <nav className="w-full bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm transition-all duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-20 items-center">
+            
+            {/* Logo */}
+            <div className="flex-shrink-0 flex items-center group cursor-pointer" onClick={() => navigate('/')}>
+              <span className="text-2xl font-black font-montserrat tracking-tighter group-hover:tracking-tight transition-all duration-500">
+                I-RUN <span className="text-brand-red inline-block group-hover:rotate-180 transition-transform duration-700">/</span> LA RIOJA
+              </span>
+            </div>
 
           {/* Desktop Menu */}
           <div className="hidden md:flex flex-1 items-center justify-center space-x-8">
@@ -190,6 +233,7 @@ const Navbar = () => {
         </div>
       )}
     </nav>
+    </header>
   );
 };
 

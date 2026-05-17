@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabaseClient';
 const useSettingsStore = create((set) => ({
   shippingCost: 0,
   localShippingCost: 0,
+  mpDiscount: 3.49,
   banners: [],
   isLoading: false,
   error: null,
@@ -21,6 +22,7 @@ const useSettingsStore = create((set) => ({
       set({ 
         shippingCost: data ? data.shipping_cost : 0, 
         localShippingCost: data ? data.local_shipping_cost : 0,
+        mpDiscount: data && data.mp_discount !== undefined ? data.mp_discount : 3.49,
         banners: data && data.banners ? data.banners : [],
         error: null 
       });
@@ -59,6 +61,21 @@ const useSettingsStore = create((set) => ({
     } catch (error) {
       console.error('Error updating local shipping cost:', error);
       alert('Error al actualizar el costo de envío local: ' + error.message);
+    }
+  },
+
+  updateMpDiscount: async (newDiscount) => {
+    try {
+      const { error } = await supabase
+        .from('settings')
+        .update({ mp_discount: newDiscount })
+        .eq('id', 1);
+
+      if (error) throw error;
+      set({ mpDiscount: newDiscount });
+    } catch (error) {
+      console.error('Error updating MP discount:', error);
+      alert('Asegúrate de haber añadido la columna mp_discount en Supabase. Error: ' + error.message);
     }
   },
 

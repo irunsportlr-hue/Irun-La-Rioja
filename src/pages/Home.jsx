@@ -5,20 +5,31 @@ import { useEffect } from 'react';
 import useProductStore from '../store/useProductStore';
 import useSettingsStore from '../store/useSettingsStore';
 import BannerCarousel from '../components/BannerCarousel';
+import BrandMarquee from '../components/BrandMarquee';
 
 const Home = () => {
-  const products = useProductStore(state => state.products);
-  const homeProducts = products.slice(0, 4);
+  const { products, fetchProducts } = useProductStore();
   const { banners, fetchSettings } = useSettingsStore();
 
   useEffect(() => {
     fetchSettings();
+    if (products.length === 0) {
+      fetchProducts();
+    }
   }, []);
+
+  // Prioritize products with highest discount, then slice top 4 or 8. Let's show 8 items to make it look full.
+  const homeProducts = [...products]
+    .sort((a, b) => (b.discount || 0) - (a.discount || 0))
+    .slice(0, 8);
 
   return (
     <div className="w-full">
       {/* Hero Section - Banner Carousel */}
       <BannerCarousel banners={banners} />
+
+      {/* Brand Logos Marquee */}
+      <BrandMarquee />
 
       {/* Features */}
       <section className="py-16 bg-white">
@@ -69,15 +80,31 @@ const Home = () => {
               <Link to={`/product/${product.id}`} key={product.id} className="snap-start shrink-0 w-[75vw] sm:w-auto group flex flex-col bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 sm:border-transparent">
                 <div className="relative h-64 overflow-hidden bg-gray-100">
                   <img src={product.image_url} alt={product.name} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
-                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-gray-800">
-                    {product.brand}
+                  <div className="absolute top-4 left-4 flex flex-col gap-2">
+                    <div className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-gray-800 shadow-sm w-max">
+                      {product.brand}
+                    </div>
+                    {product.discount > 0 && (
+                      <div className="bg-brand-red text-white px-3 py-1 rounded-full text-xs font-black shadow-lg animate-bounce w-max">
+                        -{product.discount}% OFF
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="p-5 sm:p-6 flex flex-col flex-grow">
                   <span className="text-sm text-gray-500 mb-1">{product.category}</span>
                   <h3 className="text-lg font-bold text-gray-900 mb-2 leading-tight group-hover:text-brand-red transition-colors line-clamp-2">{product.name}</h3>
-                  <div className="mt-auto pt-4 flex items-center justify-between">
-                    <span className="text-xl font-black text-brand-dark">${product.price.toLocaleString('es-AR')}</span>
+                  <div className="mt-auto pt-4 flex flex-col justify-end">
+                    {product.discount > 0 ? (
+                      <>
+                        <span className="text-sm text-gray-400 line-through font-bold">${product.price.toLocaleString('es-AR')}</span>
+                        <span className="text-2xl font-black text-brand-red">
+                          ${(product.price - (product.price * product.discount / 100)).toLocaleString('es-AR')}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-xl font-black text-brand-dark">${product.price.toLocaleString('es-AR')}</span>
+                    )}
                   </div>
                 </div>
               </Link>

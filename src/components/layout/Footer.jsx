@@ -32,9 +32,9 @@ const Footer = () => {
                 <MapPin size={20} className="mr-2 text-brand-red" />
                 La Rioja, Capital
               </li>
-              <li className="flex items-center text-gray-400">
-                <Phone size={20} className="mr-2 text-brand-red" />
-                +54 9 3804 12-0296
+              <li className="flex items-center">
+                <Phone size={18} className="text-brand-red mr-3" />
+                +54 9 3832 41-2995
               </li>
               <li className="flex items-center space-x-4 mt-4">
                 <a href="https://www.instagram.com/irun.sport.lr?igsh=MWh3d295eHl3dWxzbA%3D%3D&utm_source=qr" target="_blank" rel="noreferrer" className="p-2 bg-gray-800 rounded-full text-white hover:bg-brand-red transition-colors w-10 h-10 flex items-center justify-center font-bold text-sm">

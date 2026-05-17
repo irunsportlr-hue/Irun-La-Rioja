@@ -21,9 +21,10 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('ventas');
   
   // Settings
-  const { shippingCost, localShippingCost, banners, fetchSettings, updateShippingCost, updateLocalShippingCost, updateBanners } = useSettingsStore();
+  const { shippingCost, localShippingCost, mpDiscount, banners, fetchSettings, updateShippingCost, updateLocalShippingCost, updateMpDiscount, updateBanners } = useSettingsStore();
   const [newShippingCostInput, setNewShippingCostInput] = useState('');
   const [newLocalShippingCostInput, setNewLocalShippingCostInput] = useState('');
+  const [newMpDiscountInput, setNewMpDiscountInput] = useState('');
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
 
   // Órdenes
@@ -46,6 +47,7 @@ const AdminDashboard = () => {
       fetchSettings().then(() => {
         setNewShippingCostInput(useSettingsStore.getState().shippingCost);
         setNewLocalShippingCostInput(useSettingsStore.getState().localShippingCost);
+        setNewMpDiscountInput(useSettingsStore.getState().mpDiscount);
       });
     }
   }, [isAuthenticated]);
@@ -250,9 +252,9 @@ const AdminDashboard = () => {
   const filteredOrders = orders.filter(order => {
     if (!orderSearchQuery) return true;
     const q = orderSearchQuery.toLowerCase();
-    const isId = order.id.toLowerCase().includes(q);
-    const isName = order.customer.nombre.toLowerCase().includes(q);
-    const isBarrio = order.customer.barrio.toLowerCase().includes(q);
+    const isId = order.id?.toLowerCase().includes(q);
+    const isName = order.customer?.nombre?.toLowerCase().includes(q);
+    const isBarrio = order.customer?.barrio?.toLowerCase().includes(q);
     // Podemos buscar por nombre de cliente, barrio, O el ID de la orden
     return isId || isName || isBarrio;
   });
@@ -691,13 +693,36 @@ const AdminDashboard = () => {
                       onClick={async () => {
                         await updateShippingCost(Number(newShippingCostInput));
                         await updateLocalShippingCost(Number(newLocalShippingCostInput));
-                        alert('Costos de envío actualizados con éxito.');
+                        await updateMpDiscount(Number(newMpDiscountInput));
+                        alert('Configuraciones actualizadas con éxito.');
                       }}
                       className="btn-primary flex items-center px-6 py-3 rounded-xl h-[50px] shrink-0"
                     >
                       <Save size={20} className="mr-2" />
                       Guardar Precios
                     </button>
+                  </div>
+
+                  {/* MP Discount */}
+                  <div className="flex items-end space-x-4 pt-4 border-t border-gray-100">
+                    <div className="flex-1">
+                      <label className="block text-sm font-bold text-gray-700 mb-1">Descuento Pago Transferencia / Alias (%)</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <span className="text-gray-400 font-bold">%</span>
+                        </div>
+                        <input 
+                          type="number" 
+                          step="0.01"
+                          min="0"
+                          value={newMpDiscountInput}
+                          onChange={(e) => setNewMpDiscountInput(e.target.value)}
+                          className="w-full pl-10 pr-3 py-3 border border-green-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 text-lg font-bold text-green-900 bg-green-50" 
+                          placeholder="Ej: 3.49"
+                        />
+                      </div>
+                      <p className="text-xs text-green-600 mt-1">Porcentaje que se descontará al elegir Pagar con Alias.</p>
+                    </div>
                   </div>
                 </div>
               </div>

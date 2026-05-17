@@ -1,8 +1,9 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, ChevronLeft, ChevronRight, Truck, MapPin } from 'lucide-react';
 import useCartStore from '../store/useCartStore';
 import useProductStore from '../store/useProductStore';
+import useSettingsStore from '../store/useSettingsStore';
 import SizeGuide from '../components/SizeGuide';
 
 const ProductDetail = () => {
@@ -17,12 +18,29 @@ const ProductDetail = () => {
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const scrollContainerRef = useRef(null);
+
+  const { userZipCode, setUserZipCode } = useCartStore();
+  const { shippingCost, localShippingCost, fetchSettings } = useSettingsStore();
+
+  const [zipInput, setZipInput] = useState(userZipCode || '');
+  const [calculatedShipping, setCalculatedShipping] = useState(null);
   
   useEffect(() => {
+    fetchSettings();
     if (products.length === 0) {
       fetchProducts();
     }
   }, []);
+
+  const handleCalculateShipping = () => {
+    if (!zipInput.trim()) return;
+    setUserZipCode(zipInput.trim());
+    if (zipInput.trim() === '5300') {
+      setCalculatedShipping(localShippingCost);
+    } else {
+      setCalculatedShipping(shippingCost);
+    }
+  };
 
   const addItem = useCartStore(state => state.addItem);
 
@@ -187,6 +205,51 @@ const ProductDetail = () => {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Calculador de Envío */}
+            <div className="mb-8 bg-blue-50/50 rounded-2xl border border-blue-100 p-5">
+              <h3 className="font-bold text-gray-900 mb-3 flex items-center">
+                <Truck className="mr-2 text-blue-600" size={20} /> Calcula tu Envío
+              </h3>
+              <div className="flex items-center gap-3">
+                <div className="relative flex-grow">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <MapPin size={16} className="text-gray-400" />
+                  </div>
+                  <input 
+                    type="text" 
+                    placeholder="Tu Código Postal (Ej: 5300)" 
+                    value={zipInput}
+                    onChange={(e) => {
+                      setZipInput(e.target.value);
+                      setCalculatedShipping(null);
+                    }}
+                    onKeyDown={(e) => e.key === 'Enter' && handleCalculateShipping()}
+                    className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  />
+                </div>
+                <button 
+                  onClick={handleCalculateShipping}
+                  className="bg-blue-600 text-white font-bold px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors whitespace-nowrap"
+                >
+                  Calcular
+                </button>
+              </div>
+              
+              {calculatedShipping !== null && (
+                <div className="mt-4 p-3 bg-white rounded-xl border border-blue-100 flex justify-between items-center animate-fade-in">
+                  <div className="flex flex-col">
+                    <span className="font-bold text-gray-900">
+                      Envío a {zipInput === '5300' ? 'La Rioja (Capital)' : 'Resto del País'}
+                    </span>
+                    <span className="text-xs text-gray-500">Recíbelo en tu domicilio o sucursal</span>
+                  </div>
+                  <span className="font-black text-blue-700 text-lg">
+                    ${calculatedShipping.toLocaleString('es-AR')}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-md p-4 border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] md:relative md:border-none md:shadow-none md:p-0 md:bg-transparent z-40">

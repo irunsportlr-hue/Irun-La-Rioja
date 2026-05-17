@@ -12,12 +12,12 @@ initMercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY || '', { locale: 'es-AR' });
 
 const Checkout = () => {
   const navigate = useNavigate();
-  const { items, removeItem, updateQuantity, getCartTotal, clearCart } = useCartStore();
+  const { items, removeItem, updateQuantity, getCartTotal, clearCart, userZipCode, setUserZipCode } = useCartStore();
   const addOrder = useOrderStore(state => state.addOrder);
-  const { shippingCost, localShippingCost, fetchSettings } = useSettingsStore();
+  const { shippingCost, localShippingCost, mpDiscount, fetchSettings } = useSettingsStore();
   
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('mercadopago'); // mercadopago | tarjeta
+  const [paymentMethod, setPaymentMethod] = useState('mercadopago'); // mercadopago | tarjeta | alias
 
   // Fetch settings on load
   useState(() => {
@@ -30,20 +30,29 @@ const Checkout = () => {
     telefono: '',
     direccion: '',
     barrio: '',
-    codigoPostal: '',
+    codigoPostal: userZipCode || '',
     ubicacionUrl: '',
   });
 
   const subtotal = getCartTotal();
-  const whatsappNumber = '5493804120296'; // Número de Muruchi SAUL saul;
+  const whatsappNumber = '5493832412995'; // Nuevo número de WhatsApp
   
   const isLocalShipping = formData.codigoPostal === '5300';
-  const envio = isLocalShipping ? (localShippingCost || 0) : (shippingCost || 0);
-  const total = subtotal + envio;
+  const hasZipCode = formData.codigoPostal.trim().length > 0;
+  
+  const isFreeShipping = subtotal >= 85000;
+  const baseShipping = hasZipCode ? (isLocalShipping ? (localShippingCost || 0) : (shippingCost || 0)) : 0;
+  const envio = isFreeShipping ? 0 : baseShipping;
+  
+  const aliasDiscount = paymentMethod === 'alias' ? (subtotal + envio) * ((mpDiscount || 3.49) / 100) : 0;
+  const total = (subtotal + envio) - aliasDiscount;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === 'codigoPostal') {
+      setUserZipCode(value);
+    }
   };
 
   const handleCheckoutSubmit = async (e) => {
@@ -99,6 +108,11 @@ const Checkout = () => {
 
         // Redirect immediately to Mercado Pago Checkout Pro
         window.location.href = preferenceData.init_point;
+      } else if (paymentMethod === 'alias') {
+        clearCart();
+        const msg = `Hola I-RUN! Acabo de realizar mi pedido #${order.id} y elegí pagar con Transferencia/Alias. Adjunto el comprobante de pago por un total de $${total.toLocaleString('es-AR')}.`;
+        const waLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}`;
+        window.location.href = waLink;
       } else {
         // Otros métodos de pago
         clearCart();
@@ -133,8 +147,8 @@ const Checkout = () => {
       <div className="bg-gray-50 flex flex-col items-center justify-center min-h-[70vh] py-12">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-brand-red mx-auto mb-6"></div>
-          <h2 className="text-2xl font-bold mb-2">Procesando Pago...</h2>
-          <p className="text-gray-500">Conectando con {paymentMethod === 'mercadopago' ? 'Mercado Pago' : 'tu Tarjeta'}, por favor espera.</p>
+          <h2 className="text-2xl font-bold mb-2">Procesando...</h2>
+          <p className="text-gray-500">Conectando con {paymentMethod === 'mercadopago' ? 'Mercado Pago' : paymentMethod === 'alias' ? 'WhatsApp' : 'tu Tarjeta'}, por favor espera.</p>
         </div>
       </div>
     );
@@ -240,25 +254,50 @@ const Checkout = () => {
                 </h2>
               </div>
               <div className="p-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {/* MP */}
-                  <label className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center transition-all ${paymentMethod === 'mercadopago' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                  <label className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center transition-all relative ${paymentMethod === 'mercadopago' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
                     <input type="radio" name="payment" value="mercadopago" checked={paymentMethod === 'mercadopago'} onChange={() => setPaymentMethod('mercadopago')} className="sr-only" />
                     {paymentMethod === 'mercadopago' && <CheckCircle2 className="text-blue-500 absolute top-4 right-4" size={20} />}
                     <Smartphone size={32} className="text-blue-500 mb-2" />
-                    <span className="font-bold text-gray-900">Mercado Pago</span>
-                    <span className="text-sm text-gray-500">Dinero o Cuotas</span>
+                    <span className="font-bold text-gray-900 text-center">Mercado Pago</span>
                   </label>
 
                   {/* Tarjeta */}
-                  <label className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center transition-all ${paymentMethod === 'tarjeta' ? 'border-brand-dark bg-gray-100' : 'border-gray-200 hover:border-gray-300'}`}>
+                  <label className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center transition-all relative ${paymentMethod === 'tarjeta' ? 'border-brand-dark bg-gray-100' : 'border-gray-200 hover:border-gray-300'}`}>
                     <input type="radio" name="payment" value="tarjeta" checked={paymentMethod === 'tarjeta'} onChange={() => setPaymentMethod('tarjeta')} className="sr-only" />
                     {paymentMethod === 'tarjeta' && <CheckCircle2 className="text-brand-dark absolute top-4 right-4" size={20} />}
                     <CreditCard size={32} className="text-brand-dark mb-2" />
-                    <span className="font-bold text-gray-900">Tarjeta de Crédito</span>
-                    <span className="text-sm text-gray-500">Mastercard, Visa</span>
+                    <span className="font-bold text-gray-900 text-center">Tarjeta</span>
+                  </label>
+
+                  {/* Alias */}
+                  <label className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center transition-all relative ${paymentMethod === 'alias' ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <div className="absolute -top-3 inset-x-0 flex justify-center">
+                      <span className="bg-green-500 text-white text-[10px] font-black uppercase px-2 py-0.5 rounded-full shadow-sm animate-pulse">-{mpDiscount || 3.49}% OFF</span>
+                    </div>
+                    <input type="radio" name="payment" value="alias" checked={paymentMethod === 'alias'} onChange={() => setPaymentMethod('alias')} className="sr-only" />
+                    {paymentMethod === 'alias' && <CheckCircle2 className="text-green-500 absolute top-4 right-4" size={20} />}
+                    <span className="text-3xl mb-2">💸</span>
+                    <span className="font-bold text-gray-900 text-center">Transferencia</span>
                   </label>
                 </div>
+                
+                {/* Alias Info Box */}
+                {paymentMethod === 'alias' && (
+                  <div className="mt-6 bg-green-100 border-2 border-green-400 p-6 rounded-2xl animate-fade-in text-center relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-green-400 to-transparent animate-marquee"></div>
+                    <h3 className="text-green-900 font-bold text-lg mb-2">Paga con Alias y ahorra {(mpDiscount || 3.49)}%</h3>
+                    <p className="text-green-800 text-sm mb-4">Transfiere a nuestro alias oficial de Mercado Pago o Banco.</p>
+                    <div className="bg-white py-3 px-6 rounded-xl inline-block shadow-sm mb-4">
+                      <span className="text-sm text-gray-500 block mb-1 uppercase tracking-wider font-bold">Alias</span>
+                      <span className="text-3xl font-black text-green-600 tracking-widest select-all">irunlr</span>
+                    </div>
+                    <p className="text-xs text-green-700 font-medium max-w-sm mx-auto">
+                      Al finalizar, te redirigiremos a WhatsApp para que nos envíes el comprobante y confirmemos tu pago al instante.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -275,17 +314,31 @@ const Checkout = () => {
                   <span className="font-semibold text-gray-800">${subtotal.toLocaleString('es-AR')}</span>
                 </div>
                 <div className="flex justify-between text-gray-600">
-                  <span>Envío {isLocalShipping && <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full ml-1">Local 5300</span>}</span>
-                  {envio > 0 ? (
+                  <span>Envío {isLocalShipping && !isFreeShipping && <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full ml-1">Local 5300</span>}</span>
+                  {isFreeShipping ? (
+                    <span className="text-green-600 font-semibold flex items-center">
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full mr-2 hidden sm:inline">Promo +$85k</span>
+                      Gratis
+                    </span>
+                  ) : !hasZipCode ? (
+                    <span className="text-gray-400 italic text-sm">A calcular...</span>
+                  ) : envio > 0 ? (
                     <span className="font-semibold text-gray-800">${envio.toLocaleString('es-AR')}</span>
                   ) : (
                     <span className="text-green-600 font-semibold">Gratis</span>
                   )}
                 </div>
-                <div className="flex justify-between items-center text-2xl font-black text-brand-dark pt-6 border-t mt-6">
-                  <span>Total</span>
-                  <span>${total.toLocaleString('es-AR')}</span>
-                </div>
+                {paymentMethod === 'alias' && aliasDiscount > 0 && (
+                  <div className="flex justify-between text-green-600 font-bold border-t border-gray-100 pt-2">
+                    <span className="flex items-center">Descuento Alias ({mpDiscount || 3.49}%)</span>
+                    <span>-${aliasDiscount.toLocaleString('es-AR', {maximumFractionDigits: 0})}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex justify-between items-center mb-8 border-t-2 border-gray-100 pt-4">
+                <span className="text-xl font-bold text-gray-900">Total</span>
+                <span className="text-3xl font-black text-brand-dark">${total.toLocaleString('es-AR', {maximumFractionDigits: 0})}</span>
               </div>
 
               <div className="pt-2">

@@ -46,7 +46,9 @@ const useCartStore = create(
       },
       getCartCount: () => {
         return get().items.reduce((count, item) => count + item.quantity, 0);
-      }
+      },
+      userZipCode: '',
+      setUserZipCode: (zipCode) => set({ userZipCode: zipCode }),
     }),
     {
       name: 'irun-cart-storage',
