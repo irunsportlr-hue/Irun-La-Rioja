@@ -136,6 +136,11 @@ const Checkout = () => {
         const msg = `Hola I-RUN! Acabo de realizar mi pedido #${order.id} y elegí pagar con Transferencia/Alias. Adjunto el comprobante de pago por un total de $${total.toLocaleString('es-AR')}.`;
         const waLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}`;
         window.location.href = waLink;
+      } else if (paymentMethod === 'efectivo') {
+        clearCart();
+        const msg = `Hola I-RUN! Acabo de realizar mi pedido #${order.id} y elegí pagar en Efectivo por un total de $${total.toLocaleString('es-AR')}. Arreglemos la entrega!`;
+        const waLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(msg)}`;
+        window.location.href = waLink;
       } else {
         // Otros métodos de pago
         clearCart();
@@ -280,13 +285,13 @@ const Checkout = () => {
                 </h2>
               </div>
               <div className="p-6">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {/* MP */}
                   <label className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center transition-all relative ${paymentMethod === 'mercadopago' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
                     <input type="radio" name="payment" value="mercadopago" checked={paymentMethod === 'mercadopago'} onChange={() => setPaymentMethod('mercadopago')} className="sr-only" />
                     {paymentMethod === 'mercadopago' && <CheckCircle2 className="text-blue-500 absolute top-4 right-4" size={20} />}
                     <Smartphone size={32} className="text-blue-500 mb-2" />
-                    <span className="font-bold text-gray-900 text-center">Mercado Pago</span>
+                    <span className="font-bold text-gray-900 text-center text-sm">Mercado Pago</span>
                   </label>
 
                   {/* Tarjeta */}
@@ -294,7 +299,7 @@ const Checkout = () => {
                     <input type="radio" name="payment" value="tarjeta" checked={paymentMethod === 'tarjeta'} onChange={() => setPaymentMethod('tarjeta')} className="sr-only" />
                     {paymentMethod === 'tarjeta' && <CheckCircle2 className="text-brand-dark absolute top-4 right-4" size={20} />}
                     <CreditCard size={32} className="text-brand-dark mb-2" />
-                    <span className="font-bold text-gray-900 text-center">Tarjeta</span>
+                    <span className="font-bold text-gray-900 text-center text-sm">Tarjeta</span>
                   </label>
 
                   {/* Alias */}
@@ -305,7 +310,15 @@ const Checkout = () => {
                     <input type="radio" name="payment" value="alias" checked={paymentMethod === 'alias'} onChange={() => setPaymentMethod('alias')} className="sr-only" />
                     {paymentMethod === 'alias' && <CheckCircle2 className="text-green-500 absolute top-4 right-4" size={20} />}
                     <span className="text-3xl mb-2">💸</span>
-                    <span className="font-bold text-gray-900 text-center">Transferencia</span>
+                    <span className="font-bold text-gray-900 text-center text-sm">Transferencia</span>
+                  </label>
+
+                  {/* Efectivo */}
+                  <label className={`cursor-pointer border-2 rounded-xl p-4 flex flex-col items-center justify-center transition-all relative ${paymentMethod === 'efectivo' ? 'border-amber-500 bg-amber-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                    <input type="radio" name="payment" value="efectivo" checked={paymentMethod === 'efectivo'} onChange={() => setPaymentMethod('efectivo')} className="sr-only" />
+                    {paymentMethod === 'efectivo' && <CheckCircle2 className="text-amber-500 absolute top-4 right-4" size={20} />}
+                    <span className="text-3xl mb-2">💵</span>
+                    <span className="font-bold text-gray-900 text-center text-sm">Efectivo</span>
                   </label>
                 </div>
                 
@@ -321,6 +334,17 @@ const Checkout = () => {
                     </div>
                     <p className="text-xs text-green-700 font-medium max-w-sm mx-auto">
                       Al finalizar, te redirigiremos a WhatsApp para que nos envíes el comprobante y confirmemos tu pago al instante.
+                    </p>
+                  </div>
+                )}
+
+                {/* Efectivo Info Box */}
+                {paymentMethod === 'efectivo' && (
+                  <div className="mt-6 bg-amber-100 border-2 border-amber-400 p-6 rounded-2xl animate-fade-in text-center relative overflow-hidden">
+                    <h3 className="text-amber-900 font-bold text-lg mb-2">Pago en Efectivo (Contra Entrega o en Local)</h3>
+                    <p className="text-amber-800 text-sm mb-4">Paga en efectivo al recibir tu pedido o al retirarlo por el local.</p>
+                    <p className="text-xs text-amber-700 font-medium max-w-sm mx-auto">
+                      Al finalizar, te redirigiremos a WhatsApp para que coordinemos la entrega y el pago.
                     </p>
                   </div>
                 )}
