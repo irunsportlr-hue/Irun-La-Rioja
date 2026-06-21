@@ -22,10 +22,11 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('ventas');
   
   // Settings
-  const { shippingCost, localShippingCost, mpDiscount, banners, fetchSettings, updateShippingCost, updateLocalShippingCost, updateMpDiscount, updateBanners } = useSettingsStore();
+  const { shippingCost, localShippingCost, mpDiscount, showTransferPrice, banners, fetchSettings, updateShippingCost, updateLocalShippingCost, updateMpDiscount, updateShowTransferPrice, updateBanners } = useSettingsStore();
   const [newShippingCostInput, setNewShippingCostInput] = useState('');
   const [newLocalShippingCostInput, setNewLocalShippingCostInput] = useState('');
   const [newMpDiscountInput, setNewMpDiscountInput] = useState('');
+  const [newShowTransferPrice, setNewShowTransferPrice] = useState(true);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
 
   // Órdenes
@@ -50,6 +51,7 @@ const AdminDashboard = () => {
         setNewShippingCostInput(useSettingsStore.getState().shippingCost);
         setNewLocalShippingCostInput(useSettingsStore.getState().localShippingCost);
         setNewMpDiscountInput(useSettingsStore.getState().mpDiscount);
+        setNewShowTransferPrice(useSettingsStore.getState().showTransferPrice);
       });
     }
   }, [isAuthenticated]);
@@ -61,7 +63,10 @@ const AdminDashboard = () => {
     if (localShippingCost !== undefined) {
       setNewLocalShippingCostInput(localShippingCost);
     }
-  }, [shippingCost, localShippingCost]);
+    if (showTransferPrice !== undefined) {
+      setNewShowTransferPrice(showTransferPrice);
+    }
+  }, [shippingCost, localShippingCost, showTransferPrice]);
 
   // Modal State
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -764,6 +769,7 @@ const AdminDashboard = () => {
                         await updateShippingCost(Number(newShippingCostInput));
                         await updateLocalShippingCost(Number(newLocalShippingCostInput));
                         await updateMpDiscount(Number(newMpDiscountInput));
+                        await updateShowTransferPrice(newShowTransferPrice);
                         alert('Configuraciones actualizadas con éxito.');
                       }}
                       className="btn-primary flex items-center px-6 py-3 rounded-xl h-[50px] shrink-0"
@@ -773,8 +779,8 @@ const AdminDashboard = () => {
                     </button>
                   </div>
 
-                  {/* MP Discount */}
-                  <div className="flex items-end space-x-4 pt-4 border-t border-gray-100">
+                  {/* MP Discount & Transfer Price Toggle */}
+                  <div className="flex flex-col md:flex-row items-start md:items-end space-y-4 md:space-y-0 md:space-x-4 pt-4 border-t border-gray-100">
                     <div className="flex-1">
                       <label className="block text-sm font-bold text-gray-700 mb-1">Descuento Pago Transferencia / Alias (%)</label>
                       <div className="relative">
@@ -792,6 +798,17 @@ const AdminDashboard = () => {
                         />
                       </div>
                       <p className="text-xs text-green-600 mt-1">Porcentaje que se descontará al elegir Pagar con Alias.</p>
+                    </div>
+                    
+                    <div className="flex-1 bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center justify-between">
+                      <div>
+                        <label className="block text-sm font-bold text-gray-900 mb-1">Mostrar Precio Transferencia / Efectivo</label>
+                        <p className="text-xs text-gray-500">Activa si quieres que el cliente vea este precio en la página del producto.</p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer ml-4">
+                        <input type="checkbox" className="sr-only peer" checked={newShowTransferPrice} onChange={(e) => setNewShowTransferPrice(e.target.checked)} />
+                        <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-red"></div>
+                      </label>
                     </div>
                   </div>
                 </div>

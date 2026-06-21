@@ -22,7 +22,7 @@ const ProductDetail = () => {
   const scrollContainerRef = useRef(null);
 
   const { userZipCode, setUserZipCode } = useCartStore();
-  const { shippingCost, localShippingCost, fetchSettings } = useSettingsStore();
+  const { shippingCost, localShippingCost, mpDiscount, showTransferPrice, fetchSettings } = useSettingsStore();
 
   const [zipInput, setZipInput] = useState(userZipCode || '');
   const [calculatedShipping, setCalculatedShipping] = useState(null);
@@ -364,8 +364,9 @@ const ProductDetail = () => {
                 <span className="text-3xl font-extrabold text-brand-dark">${product.price.toLocaleString('es-AR')}</span>
               )}
               {(() => {
+                if (!showTransferPrice) return null;
                 const finalPrice = product.discount > 0 ? (product.price * (1 - product.discount / 100)) : product.price;
-                const transferPrice = finalPrice * (1 - (useSettingsStore.getState().mpDiscount || 3.49) / 100);
+                const transferPrice = finalPrice * (1 - (mpDiscount || 3.49) / 100);
                 return (
                   <span className="text-sm font-bold text-red-600 mt-2">
                     Precio Transferencia: ${transferPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
