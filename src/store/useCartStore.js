@@ -8,13 +8,13 @@ const useCartStore = create(
       addItem: (product, size, color = null) => {
         const currentItems = get().items;
         const existingItem = currentItems.find(
-          (item) => item.product.id === product.id && item.size === size && item.color === color
+          (item) => item.product.id === product.id && item.size === size && (item.color || null) === color
         );
 
         if (existingItem) {
           set({
             items: currentItems.map((item) =>
-              item.product.id === product.id && item.size === size && item.color === color
+              item.product.id === product.id && item.size === size && (item.color || null) === color
                 ? { ...item, quantity: item.quantity + 1 }
                 : item
             ),
@@ -26,15 +26,15 @@ const useCartStore = create(
       removeItem: (productId, size, color = null) => {
         set({
           items: get().items.filter(
-            (item) => !(item.product.id === productId && item.size === size && item.color === color)
+            (item) => !(item.product.id === productId && item.size === size && (item.color || null) === color)
           ),
         });
       },
-      updateQuantity: (productId, size, quantity) => {
+      updateQuantity: (productId, size, color, quantity) => {
         if (quantity < 1) return;
         set({
           items: get().items.map((item) =>
-            item.product.id === productId && item.size === size
+            item.product.id === productId && item.size === size && (item.color || null) === color
               ? { ...item, quantity }
               : item
           ),
@@ -52,6 +52,7 @@ const useCartStore = create(
     }),
     {
       name: 'irun-cart-storage',
+      version: 1, // Incrementar la versión limpia automáticamente el localStorage anterior que tenía el bug
     }
   )
 );
