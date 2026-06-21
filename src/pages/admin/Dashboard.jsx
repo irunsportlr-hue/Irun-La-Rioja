@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Package, DollarSign, LogOut, Plus, Edit2, Trash2, MapPin, CheckCircle, Clock, Truck, Home, Search, X, Menu, Upload, Settings, Save } from 'lucide-react';
+import { Package, DollarSign, LogOut, Plus, Edit2, Trash2, MapPin, CheckCircle, Clock, Truck, Home, Search, X, Menu, Upload, Settings, Save, Moon, Sun } from 'lucide-react';
 import useOrderStore from '../../store/useOrderStore';
 import useProductStore from '../../store/useProductStore';
 import useSettingsStore from '../../store/useSettingsStore';
@@ -81,6 +81,14 @@ const AdminDashboard = () => {
 
   // Mobile Menu State
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const saved = localStorage.getItem('adminDarkMode');
+    return saved === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('adminDarkMode', isDarkMode);
+  }, [isDarkMode]);
 
   const handleOpenModal = (product = null) => {
     setUploadError('');
@@ -305,7 +313,7 @@ const AdminDashboard = () => {
       case 'Preparando': return 'bg-yellow-100 text-yellow-800';
       case 'En Camino': return 'bg-purple-100 text-purple-800';
       case 'Entregado': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200';
     }
   };
 
@@ -328,36 +336,36 @@ const AdminDashboard = () => {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl shadow-2xl">
+        <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-10 rounded-3xl shadow-2xl">
           <div>
-            <h2 className="text-center text-3xl font-extrabold font-montserrat text-gray-900">
+            <h2 className="text-center text-3xl font-extrabold font-montserrat text-gray-900 dark:text-white">
               I-RUN <span className="text-brand-red">/</span> ADMIN
             </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
+            <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
               Ingresa tus credenciales para acceder al panel
             </p>
           </div>
           <form className="mt-8 space-y-6" onSubmit={handleLogin}>
             <div className="rounded-md shadow-sm space-y-4">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Usuario</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Usuario</label>
                 <input
                   type="text"
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red focus:border-transparent focus:z-10 sm:text-sm"
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red focus:border-transparent focus:z-10 sm:text-sm"
                   placeholder="Usuario administrador"
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1">Contraseña</label>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Contraseña</label>
                 <input
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red focus:border-transparent focus:z-10 sm:text-sm"
+                  className="appearance-none relative block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 placeholder-gray-500 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red focus:border-transparent focus:z-10 sm:text-sm"
                   placeholder="••••••••"
                 />
               </div>
@@ -382,7 +390,7 @@ const AdminDashboard = () => {
   }
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-gray-100 overflow-hidden">
+    <div className={`flex flex-col md:flex-row h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden ${isDarkMode ? 'dark' : ''}`}>
       
       {/* Mobile Header */}
       <div className="md:hidden bg-gray-900 text-white p-4 flex justify-between items-center z-20 shadow-md">
@@ -410,7 +418,7 @@ const AdminDashboard = () => {
           >
             <DollarSign size={20} className="mr-3" />
             Ventas y Envíos
-            {orders.length > 0 && <span className="ml-auto bg-white text-brand-red text-xs px-2 py-0.5 rounded-full">{orders.filter(o => o.status !== 'Entregado').length}</span>}
+            {orders.length > 0 && <span className="ml-auto bg-white dark:bg-gray-800 text-brand-red text-xs px-2 py-0.5 rounded-full">{orders.filter(o => o.status !== 'Entregado').length}</span>}
           </button>
           <button 
             onClick={() => { setActiveTab('productos'); setIsMobileMenuOpen(false); }}
@@ -428,10 +436,14 @@ const AdminDashboard = () => {
           </button>
         </nav>
 
-        <div className="p-4 border-t border-gray-800 mt-auto">
+        
+        <div className="p-4 border-t border-gray-800 mt-auto flex justify-between items-center">
           <button onClick={handleLogout} className="flex items-center text-gray-400 hover:text-white transition-colors w-full px-4 py-3 md:py-2 font-medium">
             <LogOut size={20} className="mr-3" />
             Cerrar Sesión
+          </button>
+          <button onClick={() => setIsDarkMode(!isDarkMode)} className="p-2 text-gray-400 hover:text-white transition-colors rounded-full hover:bg-gray-800" title="Alternar Modo Oscuro">
+            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
         </div>
       </div>
@@ -444,31 +456,31 @@ const AdminDashboard = () => {
           <div>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
               <div>
-                <h1 className="text-3xl font-extrabold text-gray-900 font-montserrat">Historial de Ventas</h1>
+                <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white font-montserrat">Historial de Ventas</h1>
                 <p className="text-gray-500">Gestiona los pedidos, pagos y despachos a clientes.</p>
               </div>
               
               {/* Buscador inteligente de Órdenes */}
               <div className="relative w-full md:w-80">
-                <div className="flex items-center bg-white border border-gray-200 rounded-xl px-4 py-2.5 focus-within:ring-2 focus-within:ring-brand-red transition-all shadow-sm">
+                <div className="flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus-within:ring-2 focus-within:ring-brand-red transition-all shadow-sm">
                   <Search size={18} className="text-gray-400 shrink-0" />
                   <input 
                     type="text" 
                     value={orderSearchQuery}
                     onChange={(e) => setOrderSearchQuery(e.target.value)}
                     placeholder="Buscar por ID, Cliente o Barrio..." 
-                    className="bg-transparent border-none focus:outline-none w-full ml-3 text-sm text-gray-700 font-medium placeholder-gray-400"
+                    className="bg-transparent border-none focus:outline-none w-full ml-3 text-sm text-gray-700 dark:text-gray-300 font-medium placeholder-gray-400"
                   />
                 </div>
               </div>
             </div>
 
             {orders.length === 0 ? (
-              <div className="bg-white rounded-3xl p-12 text-center shadow-sm border border-gray-100">
-                <div className="mx-auto w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+              <div className="bg-white dark:bg-gray-800 rounded-3xl p-12 text-center shadow-sm border border-gray-100 dark:border-gray-700">
+                <div className="mx-auto w-20 h-20 bg-gray-50 dark:bg-gray-700/50 rounded-full flex items-center justify-center mb-4">
                   <Package size={32} className="text-gray-400" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">No hay ventas registradas</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No hay ventas registradas</h3>
                 <p className="text-gray-500">Los pedidos confirmados aparecerán aquí automáticamente.</p>
               </div>
             ) : filteredOrders.length === 0 ? (
@@ -479,12 +491,12 @@ const AdminDashboard = () => {
             ) : (
               <div className="space-y-6">
                 {filteredOrders.map((order) => (
-                  <div key={order.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                  <div key={order.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
                     
                     {/* Header de la Orden */}
-                    <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex flex-wrap justify-between items-center gap-4">
+                    <div className="bg-gray-50 dark:bg-gray-700/50 px-6 py-4 border-b border-gray-100 dark:border-gray-700 flex flex-wrap justify-between items-center gap-4">
                       <div className="flex items-center space-x-4">
-                        <span className="font-mono font-bold text-gray-900">#{order.id}</span>
+                        <span className="font-mono font-bold text-gray-900 dark:text-white">#{order.id}</span>
                         <span className="text-sm text-gray-500">{new Date(order.date).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}</span>
                         <span className="text-sm font-semibold bg-green-100 text-green-700 px-3 py-1 rounded-full">
                           {order.paymentMethod}
@@ -492,7 +504,7 @@ const AdminDashboard = () => {
                       </div>
                       
                       <div className="flex items-center space-x-3">
-                        <span className="text-sm font-medium text-gray-600">Estado:</span>
+                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Estado:</span>
                         <select 
                           value={order.status}
                           onChange={(e) => handleStatusChange(order.id, e.target.value)}
@@ -512,16 +524,16 @@ const AdminDashboard = () => {
                       <div className="lg:col-span-1 space-y-4">
                         <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Datos del Cliente</h3>
                         <div>
-                          <p className="font-bold text-gray-900 text-lg">{order.customer.nombre}</p>
-                          <p className="text-gray-600 mt-1">📞 {order.customer.telefono}</p>
+                          <p className="font-bold text-gray-900 dark:text-white text-lg">{order.customer.nombre}</p>
+                          <p className="text-gray-600 dark:text-gray-400 mt-1">📞 {order.customer.telefono}</p>
                         </div>
                         
                         <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
                           <h4 className="flex items-center text-sm font-bold text-blue-900 mb-2">
                             <MapPin size={16} className="mr-1" /> Dirección de Entrega
                           </h4>
-                          <p className="text-gray-800 font-medium">{order.customer.direccion}</p>
-                          <p className="text-gray-600 text-sm mb-2 font-bold bg-white px-2 py-1 inline-block rounded border border-blue-100 mt-1">Barrio: {order.customer.barrio}</p>
+                          <p className="text-gray-800 dark:text-gray-200 font-medium">{order.customer.direccion}</p>
+                          <p className="text-gray-600 dark:text-gray-400 text-sm mb-2 font-bold bg-white dark:bg-gray-800 px-2 py-1 inline-block rounded border border-blue-100 mt-1">Barrio: {order.customer.barrio}</p>
                           {order.customer.ubicacionUrl && (
                             <a href={order.customer.ubicacionUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:text-blue-800 font-bold underline break-all mt-2 block">
                               Ver en Google Maps
@@ -532,23 +544,23 @@ const AdminDashboard = () => {
 
                       {/* Lista de Productos */}
                       <div className="lg:col-span-2">
-                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">Productos ({order.items.reduce((acc, i) => acc + i.quantity, 0)})</h3>
+                        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 dark:border-gray-700 pb-2">Productos ({order.items.reduce((acc, i) => acc + i.quantity, 0)})</h3>
                         <div className="space-y-4">
                           {order.items.map((item, index) => (
                             <div key={index} className="flex justify-between items-center">
                               <div className="flex items-center">
-                                <img src={item.product.image_url} alt={item.product.name} className="w-12 h-12 rounded-lg object-cover border border-gray-200" />
+                                <img src={item.product.image_url} alt={item.product.name} className="w-12 h-12 rounded-lg object-cover border border-gray-200 dark:border-gray-700" />
                                 <div className="ml-4">
-                                  <p className="font-bold text-gray-900">{item.product.name}</p>
+                                  <p className="font-bold text-gray-900 dark:text-white">{item.product.name}</p>
                                   <p className="text-xs text-gray-500">Talle: {item.size} | Cantidad: {item.quantity}</p>
                                 </div>
                               </div>
-                              <p className="font-bold text-gray-900">${(item.product.price * item.quantity).toLocaleString('es-AR')}</p>
+                              <p className="font-bold text-gray-900 dark:text-white">${(item.product.price * item.quantity).toLocaleString('es-AR')}</p>
                             </div>
                           ))}
                         </div>
                         
-                        <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-end">
+                        <div className="mt-6 pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-between items-end">
                           <span className="text-gray-500 font-medium">Total de la Orden</span>
                           <span className="text-3xl font-black text-brand-dark">${order.total.toLocaleString('es-AR')}</span>
                         </div>
@@ -566,19 +578,19 @@ const AdminDashboard = () => {
         {activeTab === 'productos' && (
           <div>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-              <h1 className="text-3xl font-bold text-gray-900">Inventario de Productos ({products.length})</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Inventario de Productos ({products.length})</h1>
               
               <div className="flex items-center space-x-4 w-full md:w-auto">
                 {/* Buscador inteligente de Productos */}
                 <div className="relative w-full md:w-72">
-                  <div className="flex items-center bg-white border border-gray-200 rounded-xl px-4 py-2.5 focus-within:ring-2 focus-within:ring-brand-red transition-all shadow-sm">
+                  <div className="flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 focus-within:ring-2 focus-within:ring-brand-red transition-all shadow-sm">
                     <Search size={18} className="text-gray-400 shrink-0" />
                     <input 
                       type="text" 
                       value={productSearchQuery}
                       onChange={(e) => setProductSearchQuery(e.target.value)}
                       placeholder="Buscar por Nombre, Marca o Categoría..." 
-                      className="bg-transparent border-none focus:outline-none w-full ml-3 text-sm text-gray-700 font-medium placeholder-gray-400"
+                      className="bg-transparent border-none focus:outline-none w-full ml-3 text-sm text-gray-700 dark:text-gray-300 font-medium placeholder-gray-400"
                     />
                   </div>
                 </div>
@@ -593,7 +605,7 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
               {isLoading ? (
                 <div className="flex justify-center items-center py-20">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-red"></div>
@@ -603,7 +615,7 @@ const AdminDashboard = () => {
                 {/* Desktop Table */}
                 <div className="hidden md:block overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gray-50 dark:bg-gray-700/50">
                     <tr>
                       <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Producto</th>
                       <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Categoría</th>
@@ -612,22 +624,22 @@ const AdminDashboard = () => {
                       <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
                     {filteredProducts.map(product => (
-                      <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+                      <tr key={product.id} className="hover:bg-gray-50 dark:bg-gray-700/50 transition-colors">
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="h-10 w-10 flex-shrink-0">
-                              <img className="h-10 w-10 rounded-lg object-cover border border-gray-100" src={product.image_url} alt={product.name} />
+                              <img className="h-10 w-10 rounded-lg object-cover border border-gray-100 dark:border-gray-700" src={product.image_url} alt={product.name} />
                             </div>
                             <div className="ml-4">
-                              <div className="text-sm font-bold text-gray-900">{product.name}</div>
+                              <div className="text-sm font-bold text-gray-900 dark:text-white">{product.name}</div>
                               <div className="text-sm text-gray-500 font-semibold">{product.brand}</div>
                             </div>
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">{product.category}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900 dark:text-white">
                           ${product.price.toLocaleString('es-AR')}
                           {product.discount > 0 && (
                             <span className="ml-2 text-xs text-red-500 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">
@@ -661,24 +673,24 @@ const AdminDashboard = () => {
                 {/* Mobile Cards */}
                 <div className="md:hidden divide-y divide-gray-100">
                   {filteredProducts.map(product => (
-                    <div key={product.id} className="p-4 flex flex-col sm:flex-row gap-4 bg-white hover:bg-gray-50 transition-colors">
+                    <div key={product.id} className="p-4 flex flex-col sm:flex-row gap-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:bg-gray-700/50 transition-colors">
                       <div className="flex items-center gap-4">
-                        <img className="h-16 w-16 rounded-xl object-cover border border-gray-100" src={product.image_url} alt={product.name} />
+                        <img className="h-16 w-16 rounded-xl object-cover border border-gray-100 dark:border-gray-700" src={product.image_url} alt={product.name} />
                         <div className="flex-1">
-                          <div className="text-sm font-bold text-gray-900 line-clamp-2">{product.name}</div>
+                          <div className="text-sm font-bold text-gray-900 dark:text-white line-clamp-2">{product.name}</div>
                           <div className="text-xs text-gray-500 font-semibold mb-1">{product.brand} - {product.category}</div>
-                          <div className="text-sm font-black text-gray-900">
+                          <div className="text-sm font-black text-gray-900 dark:text-white">
                             ${product.price.toLocaleString('es-AR')}
                             {product.discount > 0 && <span className="ml-2 text-[10px] text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-100">-{product.discount}%</span>}
                           </div>
                         </div>
                       </div>
-                      <div className="flex justify-between items-center mt-2 sm:mt-0 sm:flex-col sm:justify-end gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100">
+                      <div className="flex justify-between items-center mt-2 sm:mt-0 sm:flex-col sm:justify-end gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100 dark:border-gray-700">
                         <span className="px-2 py-0.5 inline-flex text-[10px] leading-5 font-bold rounded-full bg-green-100 text-green-800">Stock</span>
                         <div className="flex space-x-4">
                           <button 
                             onClick={() => updateProduct(product.id, { is_visible: product.is_visible === false ? true : false })} 
-                            className={`p-2 rounded-lg ${product.is_visible === false ? 'bg-gray-100 text-gray-500' : 'bg-blue-50 text-blue-600'}`}
+                            className={`p-2 rounded-lg ${product.is_visible === false ? 'bg-gray-100 dark:bg-gray-900 text-gray-500' : 'bg-blue-50 text-blue-600'}`}
                           >
                             {product.is_visible === false ? <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye-off"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>}
                           </button>
@@ -691,7 +703,7 @@ const AdminDashboard = () => {
                 </div>
                 </>
               ) : (
-                <div className="text-center py-12 bg-white">
+                <div className="text-center py-12 bg-white dark:bg-gray-800">
                   <p className="text-gray-500">No se encontraron productos para "{productSearchQuery}"</p>
                   <button onClick={() => setProductSearchQuery('')} className="text-brand-red font-bold mt-2 hover:underline">Ver todos los productos</button>
                 </div>
@@ -712,13 +724,13 @@ const AdminDashboard = () => {
         {activeTab === 'configuracion' && (
           <div>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-              <h1 className="text-3xl font-bold text-gray-900 font-montserrat">Configuración de la Tienda</h1>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white font-montserrat">Configuración de la Tienda</h1>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden max-w-2xl">
-              <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden max-w-2xl">
+              <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex items-center">
                 <Truck className="text-brand-red mr-3" size={24} />
-                <h2 className="text-xl font-bold text-gray-900">Costo de Envío</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">Costo de Envío</h2>
               </div>
               <div className="p-6">
                 <p className="text-gray-500 mb-6">
@@ -728,7 +740,7 @@ const AdminDashboard = () => {
                 <div className="flex flex-col gap-4">
                   <div className="flex items-end space-x-4">
                     <div className="flex-1">
-                      <label className="block text-sm font-bold text-gray-700 mb-1">Costo de Envío Nacional ($)</label>
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Costo de Envío Nacional ($)</label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                           <DollarSign size={18} className="text-gray-400" />
@@ -738,7 +750,7 @@ const AdminDashboard = () => {
                           min="0"
                           value={newShippingCostInput}
                           onChange={(e) => setNewShippingCostInput(e.target.value)}
-                          className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red text-lg font-bold text-gray-900" 
+                          className="w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red text-lg font-bold text-gray-900 dark:text-white" 
                           placeholder="Ej: 9000"
                         />
                       </div>
@@ -748,7 +760,7 @@ const AdminDashboard = () => {
 
                   <div className="flex items-end space-x-4">
                     <div className="flex-1">
-                      <label className="block text-sm font-bold text-gray-700 mb-1">Costo de Envío Local - La Rioja (CP 5300) ($)</label>
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Costo de Envío Local - La Rioja (CP 5300) ($)</label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                           <DollarSign size={18} className="text-gray-400" />
@@ -780,9 +792,9 @@ const AdminDashboard = () => {
                   </div>
 
                   {/* MP Discount & Transfer Price Toggle */}
-                  <div className="flex flex-col md:flex-row items-start md:items-end space-y-4 md:space-y-0 md:space-x-4 pt-4 border-t border-gray-100">
+                  <div className="flex flex-col md:flex-row items-start md:items-end space-y-4 md:space-y-0 md:space-x-4 pt-4 border-t border-gray-100 dark:border-gray-700">
                     <div className="flex-1">
-                      <label className="block text-sm font-bold text-gray-700 mb-1">Descuento Pago Transferencia / Alias (%)</label>
+                      <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Descuento Pago Transferencia / Alias (%)</label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                           <span className="text-gray-400 font-bold">%</span>
@@ -800,14 +812,14 @@ const AdminDashboard = () => {
                       <p className="text-xs text-green-600 mt-1">Porcentaje que se descontará al elegir Pagar con Alias.</p>
                     </div>
                     
-                    <div className="flex-1 bg-gray-50 border border-gray-200 rounded-xl p-4 flex items-center justify-between">
+                    <div className="flex-1 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex items-center justify-between">
                       <div>
-                        <label className="block text-sm font-bold text-gray-900 mb-1">Mostrar Precio Transferencia / Efectivo</label>
+                        <label className="block text-sm font-bold text-gray-900 dark:text-white mb-1">Mostrar Precio Transferencia / Efectivo</label>
                         <p className="text-xs text-gray-500">Activa si quieres que el cliente vea este precio en la página del producto.</p>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer ml-4">
                         <input type="checkbox" className="sr-only peer" checked={newShowTransferPrice} onChange={(e) => setNewShowTransferPrice(e.target.checked)} />
-                        <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-red"></div>
+                        <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white dark:bg-gray-800 after:border-gray-300 dark:border-gray-600 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-red"></div>
                       </label>
                     </div>
                   </div>
@@ -816,11 +828,11 @@ const AdminDashboard = () => {
             </div>
 
             {/* BANNERS DE PUBLICIDAD */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden max-w-4xl mt-8">
-              <div className="p-6 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden max-w-4xl mt-8">
+              <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex items-center justify-between">
                 <div className="flex items-center">
                   <Upload className="text-brand-red mr-3" size={24} />
-                  <h2 className="text-xl font-bold text-gray-900">Pantallas de Publicidad (Home)</h2>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Pantallas de Publicidad (Home)</h2>
                 </div>
                 {isUploadingBanner && <span className="text-sm font-bold text-blue-500 animate-pulse">Subiendo imagen...</span>}
               </div>
@@ -836,14 +848,14 @@ const AdminDashboard = () => {
                   {[0, 1, 2, 3, 4].map((index) => {
                     const bannerUrl = banners[index];
                     return (
-                      <div key={index} className="flex flex-col md:flex-row gap-4 items-center p-4 border border-gray-200 rounded-xl bg-white">
+                      <div key={index} className="flex flex-col md:flex-row gap-4 items-center p-4 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800">
                         <div className="w-full md:w-1/4">
-                          <h3 className="font-bold text-gray-700">Pantalla {index + 1}</h3>
+                          <h3 className="font-bold text-gray-700 dark:text-gray-300">Pantalla {index + 1}</h3>
                         </div>
                         <div className="w-full md:w-3/4 flex items-center gap-4">
                           {bannerUrl ? (
                             <>
-                              <div className="relative w-40 h-16 rounded overflow-hidden border border-gray-200 shrink-0">
+                              <div className="relative w-40 h-16 rounded overflow-hidden border border-gray-200 dark:border-gray-700 shrink-0">
                                 <img src={bannerUrl} alt={`Banner ${index + 1}`} className="w-full h-full object-cover" />
                               </div>
                               <button 
@@ -855,7 +867,7 @@ const AdminDashboard = () => {
                             </>
                           ) : (
                             <div className="w-full">
-                              <label className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                              <label className="flex items-center justify-center w-full px-4 py-3 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl cursor-pointer hover:bg-gray-50 dark:bg-gray-700/50 transition-colors">
                                 <Upload size={18} className="text-gray-400 mr-2" />
                                 <span className="text-sm font-bold text-gray-500">Haz clic para subir imagen</span>
                                 <input type="file" accept="image/*" className="hidden" onChange={(e) => handleBannerUpload(index, e)} disabled={isUploadingBanner} />
@@ -879,14 +891,14 @@ const AdminDashboard = () => {
       {isProductModalOpen && (
         <div className="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
           <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={handleCloseModal}></div>
+            <div className="fixed inset-0 bg-gray-50 dark:bg-gray-700/500 bg-opacity-75 transition-opacity" aria-hidden="true" onClick={handleCloseModal}></div>
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-            <div className="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+            <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
                 <div className="sm:flex sm:items-start">
                   <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
                     <div className="flex justify-between items-center mb-5">
-                      <h3 className="text-xl leading-6 font-bold text-gray-900 font-montserrat" id="modal-title">
+                      <h3 className="text-xl leading-6 font-bold text-gray-900 dark:text-white font-montserrat" id="modal-title">
                         {editingProduct ? 'Editar Producto' : 'Nuevo Producto'}
                       </h3>
                       <button type="button" onClick={handleCloseModal} className="text-gray-400 hover:text-gray-500">
@@ -895,17 +907,17 @@ const AdminDashboard = () => {
                     </div>
                     <form onSubmit={handleProductSubmit} className="space-y-4">
                       <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1">Nombre</label>
-                        <input required type="text" value={productForm.name} onChange={(e) => setProductForm({...productForm, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red" />
+                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Nombre</label>
+                        <input required type="text" value={productForm.name} onChange={(e) => setProductForm({...productForm, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red" />
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-bold text-gray-700 mb-1">Marca</label>
-                          <input required type="text" value={productForm.brand} onChange={(e) => setProductForm({...productForm, brand: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red" />
+                          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Marca</label>
+                          <input required type="text" value={productForm.brand} onChange={(e) => setProductForm({...productForm, brand: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red" />
                         </div>
                         <div>
-                          <label className="block text-sm font-bold text-gray-700 mb-1">Categoría</label>
-                          <select required value={productForm.category} onChange={(e) => setProductForm({...productForm, category: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red">
+                          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Categoría</label>
+                          <select required value={productForm.category} onChange={(e) => setProductForm({...productForm, category: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red">
                             <option value="Calzado">Calzado</option>
                             <option value="Ropa">Ropa</option>
                             <option value="Accesorios">Accesorios</option>
@@ -914,19 +926,19 @@ const AdminDashboard = () => {
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-bold text-gray-700 mb-1">Precio ($)</label>
-                          <input required type="number" min="0" value={productForm.price} onChange={(e) => setProductForm({...productForm, price: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red" />
+                          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Precio ($)</label>
+                          <input required type="number" min="0" value={productForm.price} onChange={(e) => setProductForm({...productForm, price: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red" />
                         </div>
                         <div>
-                          <label className="block text-sm font-bold text-gray-700 mb-1">Descuento (%)</label>
-                          <input type="number" min="0" max="100" value={productForm.discount} onChange={(e) => setProductForm({...productForm, discount: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red" placeholder="0" />
+                          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Descuento (%)</label>
+                          <input type="number" min="0" max="100" value={productForm.discount} onChange={(e) => setProductForm({...productForm, discount: e.target.value})} className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red" placeholder="0" />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1">Imagen del Producto</label>
+                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Imagen del Producto</label>
                         <div className="flex items-center space-x-4">
                           {productForm.image_url ? (
-                            <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200 shrink-0">
+                            <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shrink-0">
                               <img src={productForm.image_url} alt="Preview" className="w-full h-full object-cover" />
                               <button 
                                 type="button" 
@@ -937,7 +949,7 @@ const AdminDashboard = () => {
                               </button>
                             </div>
                           ) : (
-                            <div className="w-24 h-24 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center shrink-0">
+                            <div className="w-24 h-24 bg-gray-50 dark:bg-gray-700/50 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-600 flex flex-col items-center justify-center shrink-0">
                               <Upload size={20} className="text-gray-400 mb-1" />
                               <span className="text-[10px] text-gray-500 font-bold uppercase">Sin foto</span>
                             </div>
@@ -960,12 +972,12 @@ const AdminDashboard = () => {
 
                       {/* Galería Adicional */}
                       <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1">Galería de Imágenes Adicionales (Opcional)</label>
-                        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Galería de Imágenes Adicionales (Opcional)</label>
+                        <div className="bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
                           {(productForm.additional_images || []).length > 0 && (
                             <div className="flex flex-wrap gap-4 mb-4">
                               {(productForm.additional_images || []).map((imgUrl, idx) => (
-                                <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 shrink-0">
+                                <div key={idx} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 shrink-0">
                                   <img src={imgUrl} alt={`Adicional ${idx}`} className="w-full h-full object-cover" />
                                   <button 
                                     type="button" 
@@ -979,7 +991,7 @@ const AdminDashboard = () => {
                             </div>
                           )}
                           
-                          <label className="flex flex-col items-center justify-center w-full px-4 py-4 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:bg-white transition-colors">
+                          <label className="flex flex-col items-center justify-center w-full px-4 py-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl cursor-pointer hover:bg-white dark:bg-gray-800 transition-colors">
                             <Upload size={20} className="text-gray-400 mb-1" />
                             <span className="text-sm font-bold text-brand-dark">Añadir más fotos</span>
                             <span className="text-xs text-gray-500">Puedes seleccionar varias fotos a la vez</span>
@@ -996,18 +1008,18 @@ const AdminDashboard = () => {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1">Descripción</label>
-                        <textarea required value={productForm.description} onChange={(e) => setProductForm({...productForm, description: e.target.value})} rows="3" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red"></textarea>
+                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Descripción</label>
+                        <textarea required value={productForm.description} onChange={(e) => setProductForm({...productForm, description: e.target.value})} rows="3" className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red"></textarea>
                       </div>
 
                       {/* --- SECCIÓN DE TALLES --- */}
-                      <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 mt-4">
+                      <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-200 dark:border-gray-700 mt-4">
                         <div className="flex justify-between items-center mb-3">
-                          <label className="block text-sm font-bold text-gray-700">Talles Disponibles</label>
+                          <label className="block text-sm font-bold text-gray-700 dark:text-gray-300">Talles Disponibles</label>
                           <select 
                             value={selectedSizeCategory}
                             onChange={(e) => setSelectedSizeCategory(e.target.value)}
-                            className="text-sm border border-gray-300 rounded-lg focus:ring-brand-red focus:border-brand-red py-1.5 px-3 font-semibold bg-white"
+                            className="text-sm border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-brand-red focus:border-brand-red py-1.5 px-3 font-semibold bg-white dark:bg-gray-800"
                           >
                             {Object.keys(SIZES_OPTIONS).map(cat => <option key={cat} value={cat}>{cat}</option>)}
                           </select>
@@ -1023,7 +1035,7 @@ const AdminDashboard = () => {
                                 className={`px-4 py-2 rounded-lg text-sm font-bold border transition-colors ${
                                   isSelected 
                                   ? 'bg-brand-dark text-white border-brand-dark shadow-md' 
-                                  : 'bg-white text-gray-600 border-gray-300 hover:border-brand-dark'
+                                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-gray-600 hover:border-brand-dark'
                                 }`}
                               >
                                 {size}
@@ -1039,8 +1051,8 @@ const AdminDashboard = () => {
                       {/* ----------------------- */}
 
                       {/* --- SECCIÓN DE COLORES --- */}
-                      <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 mt-4">
-                        <label className="block text-sm font-bold text-gray-700 mb-3">Colores Disponibles</label>
+                      <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-200 dark:border-gray-700 mt-4">
+                        <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-3">Colores Disponibles</label>
                         <div className="flex items-center gap-2 mb-3">
                           <input 
                             type="text" 
@@ -1057,7 +1069,7 @@ const AdminDashboard = () => {
                               }
                             }}
                             placeholder="Ej: Negro, Blanco, Rojo..."
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-sm"
+                            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-sm"
                           />
                           <button 
                             type="button"
@@ -1076,8 +1088,8 @@ const AdminDashboard = () => {
                         {(productForm.colors || []).length > 0 && (
                           <div className="flex flex-wrap gap-2">
                             {(productForm.colors || []).map((color, idx) => (
-                              <span key={idx} className="inline-flex items-center bg-white border border-gray-300 text-gray-800 text-sm font-bold px-3 py-1.5 rounded-full shadow-sm">
-                                <span className="w-3 h-3 rounded-full mr-2 border border-gray-300" style={{ backgroundColor: color.toLowerCase() }}></span>
+                              <span key={idx} className="inline-flex items-center bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-gray-200 text-sm font-bold px-3 py-1.5 rounded-full shadow-sm">
+                                <span className="w-3 h-3 rounded-full mr-2 border border-gray-300 dark:border-gray-600" style={{ backgroundColor: color.toLowerCase() }}></span>
                                 {color}
                                 <button type="button" onClick={() => setProductForm(prev => ({ ...prev, colors: (prev.colors || []).filter((_, i) => i !== idx) }))} className="ml-2 text-gray-400 hover:text-red-500 transition-colors">
                                   <X size={14} />
@@ -1093,7 +1105,7 @@ const AdminDashboard = () => {
                       {/* ----------------------- */}
 
                       <div className="pt-4 flex justify-end space-x-3 mt-6">
-                        <button type="button" onClick={handleCloseModal} className="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 font-bold hover:bg-gray-50">Cancelar</button>
+                        <button type="button" onClick={handleCloseModal} className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 font-bold hover:bg-gray-50 dark:bg-gray-700/50">Cancelar</button>
                         <button type="submit" disabled={isUploading || !productForm.image_url} className="px-4 py-2 bg-brand-red text-white rounded-xl font-bold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity">{editingProduct ? 'Guardar Cambios' : 'Crear Producto'}</button>
                       </div>
                     </form>
