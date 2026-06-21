@@ -15,7 +15,9 @@ const SIZES_OPTIONS = {
 };
 
 const AdminDashboard = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('adminAuthToken') === 'true';
+  });
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState(false);
@@ -322,6 +324,7 @@ const AdminDashboard = () => {
     if (username === 'AdminPRO' && password === '$Saulindumentaria%') {
       setIsAuthenticated(true);
       setLoginError(false);
+      localStorage.setItem('adminAuthToken', 'true');
     } else {
       setLoginError(true);
     }
@@ -331,6 +334,7 @@ const AdminDashboard = () => {
     setIsAuthenticated(false);
     setUsername('');
     setPassword('');
+    localStorage.removeItem('adminAuthToken');
   };
 
   if (!isAuthenticated) {
