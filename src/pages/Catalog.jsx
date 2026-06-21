@@ -15,11 +15,14 @@ const Catalog = () => {
   const [activeBrand, setActiveBrand] = useState('Todas');
   const [showFilters, setShowFilters] = useState(false);
 
+  const { mpDiscount } = useSettingsStore();
+
   useEffect(() => {
     fetchProducts();
   }, []);
 
   const filteredProducts = products.filter(p => {
+    if (p.is_visible === false) return false;
     const matchCategory = activeCategory === 'Todos' || p.category === activeCategory;
     const matchBrand = activeBrand === 'Todas' || p.brand === activeBrand;
     return matchCategory && matchBrand;
@@ -93,7 +96,11 @@ const Catalog = () => {
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
-                {filteredProducts.map(product => (
+                {filteredProducts.map(product => {
+                  const finalPrice = product.discount > 0 ? (product.price * (1 - product.discount / 100)) : product.price;
+                  const transferPrice = finalPrice * (1 - (mpDiscount || 3.49) / 100);
+                  
+                  return (
                   <Link to={`/product/${product.id}`} key={product.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 sm:border-transparent">
                     <div className="relative h-48 sm:h-64 overflow-hidden bg-gray-100">
                       <img src={product.image_url} alt={product.name} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
@@ -101,33 +108,38 @@ const Catalog = () => {
                         {product.brand}
                       </div>
                     </div>
-                    <div className="p-3 sm:p-5">
-                      <h3 className="text-sm sm:text-lg font-bold text-gray-900 leading-tight mb-1 group-hover:text-brand-red transition-colors line-clamp-2">{product.name}</h3>
-                      <span className="text-[10px] sm:text-xs text-gray-500 block mb-2 sm:mb-4">{product.category}</span>
-                      <div className="flex flex-col">
+                    <div className="p-3 sm:p-5 flex flex-col justify-between h-full">
+                      <div>
+                        <h3 className="text-sm sm:text-lg font-bold text-gray-900 leading-tight mb-1 group-hover:text-brand-red transition-colors line-clamp-2">{product.name}</h3>
+                        <span className="text-[10px] sm:text-xs text-gray-500 block mb-2 sm:mb-4">{product.category}</span>
+                      </div>
+                      <div className="flex flex-col mt-auto">
                         {product.discount > 0 ? (
                           <>
                             <div className="flex items-center space-x-2">
-                              <span className="text-base sm:text-lg font-black text-brand-red">
-                                ${(product.price * (1 - product.discount / 100)).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                              <span className="text-base sm:text-lg font-black text-brand-dark">
+                                ${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                               </span>
-                              <span className="text-xs sm:text-sm font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
+                              <span className="text-[10px] sm:text-xs font-bold text-red-500 bg-red-50 px-1.5 py-0.5 rounded">
                                 -{product.discount}%
                               </span>
                             </div>
-                            <span className="text-xs text-gray-400 line-through">
+                            <span className="text-[10px] sm:text-xs text-gray-400 line-through">
                               ${product.price.toLocaleString('es-AR')}
                             </span>
                           </>
                         ) : (
                           <span className="text-base sm:text-lg font-black text-brand-dark">
-                            ${product.price.toLocaleString('es-AR')}
+                            ${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                           </span>
                         )}
+                        <span className="text-[10px] sm:text-xs font-bold text-red-600 mt-1">
+                          Transferencia: ${transferPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                        </span>
                       </div>
                     </div>
                   </Link>
-                ))}
+                )})}
               </div>
             )}
             

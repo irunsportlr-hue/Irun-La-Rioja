@@ -20,6 +20,7 @@ const Home = () => {
 
   // Prioritize products with highest discount, then slice top 4 or 8. Let's show 8 items to make it look full.
   const homeProducts = [...products]
+    .filter(p => p.is_visible !== false)
     .sort((a, b) => (b.discount || 0) - (a.discount || 0))
     .slice(0, 8);
 
@@ -76,7 +77,11 @@ const Home = () => {
           </div>
 
           <div className="flex overflow-x-auto pb-6 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 snap-x snap-mandatory hide-scrollbar">
-            {homeProducts.map((product) => (
+            {homeProducts.map((product) => {
+              const finalPrice = product.discount > 0 ? (product.price * (1 - product.discount / 100)) : product.price;
+              const transferPrice = finalPrice * (1 - (useSettingsStore.getState().mpDiscount || 3.49) / 100);
+              
+              return (
               <Link to={`/product/${product.id}`} key={product.id} className="snap-start shrink-0 w-[75vw] sm:w-auto group flex flex-col bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 sm:border-transparent">
                 <div className="relative h-64 overflow-hidden bg-gray-100">
                   <img src={product.image_url} alt={product.name} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
@@ -98,17 +103,20 @@ const Home = () => {
                     {product.discount > 0 ? (
                       <>
                         <span className="text-sm text-gray-400 line-through font-bold">${product.price.toLocaleString('es-AR')}</span>
-                        <span className="text-2xl font-black text-brand-red">
-                          ${(product.price - (product.price * product.discount / 100)).toLocaleString('es-AR')}
+                        <span className="text-2xl font-black text-brand-dark">
+                          ${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                         </span>
                       </>
                     ) : (
-                      <span className="text-xl font-black text-brand-dark">${product.price.toLocaleString('es-AR')}</span>
+                      <span className="text-xl font-black text-brand-dark">${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span>
                     )}
+                    <span className="text-xs font-bold text-red-600 mt-1">
+                      Transferencia: ${transferPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                    </span>
                   </div>
                 </div>
               </Link>
-            ))}
+            )})}
           </div>
           <div className="mt-10 sm:hidden flex justify-center">
             <Link to="/catalog" className="btn-outline w-full text-center">Ver todos los productos</Link>

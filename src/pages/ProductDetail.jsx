@@ -1,6 +1,6 @@
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, ShoppingBag, ChevronLeft, ChevronRight, Truck, MapPin } from 'lucide-react';
+import { ArrowLeft, ShoppingBag, ChevronLeft, ChevronRight, Truck, MapPin, Share2 } from 'lucide-react';
 import useCartStore from '../store/useCartStore';
 import useProductStore from '../store/useProductStore';
 import useSettingsStore from '../store/useSettingsStore';
@@ -15,8 +15,10 @@ const ProductDetail = () => {
   const isLoading = useProductStore(state => state.isLoading);
   const product = getProductById(id);
   const [selectedSize, setSelectedSize] = useState(null);
+  const [selectedColor, setSelectedColor] = useState(null);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isSharing, setIsSharing] = useState(false);
   const scrollContainerRef = useRef(null);
 
   const { userZipCode, setUserZipCode } = useCartStore();
@@ -47,6 +49,10 @@ const ProductDetail = () => {
   const sizes = product?.sizes && product.sizes.length > 0 
     ? product.sizes 
     : ['Talle Único'];
+
+  const colors = product?.colors && product.colors.length > 0 
+    ? product.colors 
+    : [];
 
   const allImages = product ? [product.image_url, ...(product.additional_images || [])] : [];
 
@@ -86,13 +92,181 @@ const ProductDetail = () => {
     );
   }
 
+  const handleShareWhatsApp = async () => {
+    setIsSharing(true);
+    try {
+      const finalPrice = product.discount > 0 
+        ? (product.price * (1 - product.discount / 100)) 
+        : product.price;
+      const productUrl = window.location.href;
+      const shareText = `🔥 *${product.name}* - ${product.brand}\n💰 $${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}${product.discount > 0 ? ` (${product.discount}% OFF!)` : ''}\n\n🛒 Compralo en I-RUN LA RIOJA:\n${productUrl}`;
+
+      // Create a branded image using canvas
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = 1080;
+      canvas.height = 1080;
+
+      // Load product image
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = product.image_url;
+      });
+
+      // Draw product image (cover fit)
+      const imgRatio = img.width / img.height;
+      let drawW, drawH, drawX, drawY;
+      if (imgRatio > 1) {
+        drawH = canvas.height;
+        drawW = drawH * imgRatio;
+        drawX = (canvas.width - drawW) / 2;
+        drawY = 0;
+      } else {
+        drawW = canvas.width;
+        drawH = drawW / imgRatio;
+        drawX = 0;
+        drawY = (canvas.height - drawH) / 2;
+      }
+      ctx.drawImage(img, drawX, drawY, drawW, drawH);
+
+      // Dark gradient overlay at bottom
+      const gradient = ctx.createLinearGradient(0, canvas.height * 0.45, 0, canvas.height);
+      gradient.addColorStop(0, 'rgba(0,0,0,0)');
+      gradient.addColorStop(0.5, 'rgba(0,0,0,0.6)');
+      gradient.addColorStop(1, 'rgba(0,0,0,0.92)');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Top bar with brand
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(0, 0, canvas.width, 70);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 28px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('I-RUN  /  LA RIOJA', canvas.width / 2, 46);
+
+      // Discount badge
+      if (product.discount > 0) {
+        const badgeW = 180, badgeH = 50;
+        const badgeX = canvas.width - badgeW - 30, badgeY = 90;
+        ctx.fillStyle = '#ef4444';
+        ctx.beginPath();
+        ctx.roundRect(badgeX, badgeY, badgeW, badgeH, 25);
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 26px Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`-${product.discount}% OFF`, badgeX + badgeW / 2, badgeY + 34);
+      }
+
+      // Product name
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 44px Arial, sans-serif';
+      const nameLines = wrapText(ctx, product.name, canvas.width - 100);
+      let nameY = canvas.height - 220;
+      nameLines.forEach(line => {
+        ctx.fillText(line, 50, nameY);
+        nameY += 52;
+      });
+
+      // Brand
+      ctx.font = 'bold 24px Arial, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.fillText(product.brand.toUpperCase(), 50, nameY + 10);
+
+      // Price
+      ctx.font = 'bold 52px Arial, sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(`$${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`, 50, canvas.height - 50);
+
+      if (product.discount > 0) {
+        const priceWidth = ctx.measureText(`$${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`).width;
+        ctx.font = 'bold 28px Arial, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        const oldPriceText = `$${product.price.toLocaleString('es-AR')}`;
+        ctx.fillText(oldPriceText, 50 + priceWidth + 20, canvas.height - 55);
+        const oldPriceW = ctx.measureText(oldPriceText).width;
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(50 + priceWidth + 20, canvas.height - 65);
+        ctx.lineTo(50 + priceWidth + 20 + oldPriceW, canvas.height - 65);
+        ctx.stroke();
+      }
+
+      // Convert canvas to blob
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92));
+      const file = new File([blob], `${product.name.replace(/\s+/g, '-')}.jpg`, { type: 'image/jpeg' });
+
+      // Try Web Share API with file (works on mobile)
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          text: shareText,
+          files: [file]
+        });
+      } else {
+        // Fallback: download image + open WhatsApp with text
+        const downloadUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = `${product.name.replace(/\s+/g, '-')}-IRUN.jpg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(downloadUrl);
+
+        // Open WhatsApp with the text
+        setTimeout(() => {
+          window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+        }, 500);
+      }
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        console.error('Error al compartir:', error);
+        // Ultimate fallback: just open WhatsApp with link
+        const finalPrice = product.discount > 0 ? (product.price * (1 - product.discount / 100)) : product.price;
+        const shareText = `🔥 ${product.name} - ${product.brand}\n💰 $${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}\n🛒 ${window.location.href}`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+      }
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  // Helper to wrap long text on canvas
+  function wrapText(ctx, text, maxWidth) {
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = words[0];
+    for (let i = 1; i < words.length; i++) {
+      const testLine = currentLine + ' ' + words[i];
+      if (ctx.measureText(testLine).width > maxWidth) {
+        lines.push(currentLine);
+        currentLine = words[i];
+      } else {
+        currentLine = testLine;
+      }
+    }
+    lines.push(currentLine);
+    return lines.slice(0, 2); // Max 2 lines
+  }
+
   const handleAddToCart = () => {
     if (!selectedSize) {
       alert("Por favor selecciona un talle.");
       return;
     }
-    addItem(product, selectedSize);
-    navigate('/checkout'); // Redirigir al checkout/carrito inmediatamente para flujo rápido
+    if (colors.length > 0 && !selectedColor) {
+      alert("Por favor selecciona un color.");
+      return;
+    }
+    addItem(product, selectedSize, selectedColor);
+    navigate('/checkout');
   };
 
   return (
@@ -154,8 +328,20 @@ const ProductDetail = () => {
 
           {/* Detalles */}
           <div className="w-full md:w-1/2 flex flex-col">
-            <div className="mb-2">
+            <div className="mb-2 flex items-center justify-between">
               <span className="text-sm font-bold tracking-wider text-gray-500 uppercase">{product.brand}</span>
+              <button 
+                onClick={handleShareWhatsApp}
+                disabled={isSharing}
+                className="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white font-bold text-sm rounded-full transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-wait"
+              >
+                {isSharing ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                ) : (
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                )}
+                Compartir
+              </button>
             </div>
             <h1 className="text-4xl font-extrabold font-montserrat text-brand-dark mb-4">{product.name}</h1>
             
@@ -163,7 +349,7 @@ const ProductDetail = () => {
               {product.discount > 0 ? (
                 <>
                   <div className="flex items-center space-x-4 mb-1">
-                    <span className="text-3xl font-extrabold text-brand-red">
+                    <span className="text-3xl font-extrabold text-brand-dark">
                       ${(product.price * (1 - product.discount / 100)).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                     </span>
                     <span className="text-sm font-bold text-white bg-brand-red px-3 py-1 rounded-full shadow-sm">
@@ -175,8 +361,17 @@ const ProductDetail = () => {
                   </span>
                 </>
               ) : (
-                <span className="text-3xl font-extrabold text-brand-red">${product.price.toLocaleString('es-AR')}</span>
+                <span className="text-3xl font-extrabold text-brand-dark">${product.price.toLocaleString('es-AR')}</span>
               )}
+              {(() => {
+                const finalPrice = product.discount > 0 ? (product.price * (1 - product.discount / 100)) : product.price;
+                const transferPrice = finalPrice * (1 - (useSettingsStore.getState().mpDiscount || 3.49) / 100);
+                return (
+                  <span className="text-sm font-bold text-red-600 mt-2">
+                    Precio Transferencia: ${transferPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                  </span>
+                );
+              })()}
             </div>
 
             <p className="text-gray-600 mb-8 leading-relaxed">
@@ -206,6 +401,32 @@ const ProductDetail = () => {
                 ))}
               </div>
             </div>
+
+            {/* Selector de Color */}
+            {colors.length > 0 && (
+              <div className="mb-8 p-6 bg-gray-50 rounded-2xl border border-gray-100">
+                <h3 className="font-bold text-gray-900 mb-4">Seleccionar Color</h3>
+                <div className="flex flex-wrap gap-3">
+                  {colors.map(color => (
+                    <button 
+                      key={color}
+                      onClick={() => setSelectedColor(color)}
+                      className={`flex items-center px-4 py-2.5 rounded-xl border-2 font-bold transition-all text-sm ${
+                        selectedColor === color 
+                        ? 'border-brand-dark bg-brand-dark text-white shadow-md' 
+                        : 'border-gray-200 text-gray-600 hover:border-brand-dark hover:text-brand-dark bg-white'
+                      }`}
+                    >
+                      <span 
+                        className={`w-4 h-4 rounded-full mr-2 border ${selectedColor === color ? 'border-white/50' : 'border-gray-300'}`} 
+                        style={{ backgroundColor: color.toLowerCase() }}
+                      ></span>
+                      {color}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Calculador de Envío */}
             <div className="mb-8 bg-blue-50/50 rounded-2xl border border-blue-100 p-5">

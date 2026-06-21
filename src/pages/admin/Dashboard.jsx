@@ -4,9 +4,10 @@ import useOrderStore from '../../store/useOrderStore';
 import useProductStore from '../../store/useProductStore';
 import useSettingsStore from '../../store/useSettingsStore';
 import { supabase } from '../../lib/supabaseClient';
+import emailjs from '@emailjs/browser';
 
 const SIZES_OPTIONS = {
-  'Calzado': ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45'],
+  'Calzado': ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48', '49', '50'],
   'Ropa (Letras)': ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', '5XL', '6XL'],
   'Ropa (Números)': ['1', '2', '3', '4', '5', '6', '7', '8'],
   'Niños': ['0', '2', '4', '6', '8', '10', '12', '14', '16'],
@@ -38,6 +39,7 @@ const AdminDashboard = () => {
   const addProduct = useProductStore(state => state.addProduct);
   const updateProduct = useProductStore(state => state.updateProduct);
   const deleteProduct = useProductStore(state => state.deleteProduct);
+  const searchProducts = useProductStore(state => state.searchProducts);
   const [productSearchQuery, setProductSearchQuery] = useState('');
 
   useEffect(() => {
@@ -64,8 +66,9 @@ const AdminDashboard = () => {
   // Modal State
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [productForm, setProductForm] = useState({ name: '', price: '', discount: 0, category: 'Calzado', brand: '', image_url: '', description: '', sizes: [], additional_images: [] });
+  const [productForm, setProductForm] = useState({ name: '', price: '', discount: 0, category: 'Calzado', brand: '', image_url: '', description: '', sizes: [], colors: [], additional_images: [] });
   const [selectedSizeCategory, setSelectedSizeCategory] = useState('Calzado');
+  const [colorInput, setColorInput] = useState('');
   
   // Image Upload State
   const [isUploading, setIsUploading] = useState(false);
@@ -78,10 +81,10 @@ const AdminDashboard = () => {
     setUploadError('');
     if (product) {
       setEditingProduct(product);
-      setProductForm({ ...product, discount: product.discount || 0, sizes: product.sizes || [], additional_images: product.additional_images || [] });
+      setProductForm({ ...product, discount: product.discount || 0, sizes: product.sizes || [], colors: product.colors || [], additional_images: product.additional_images || [] });
     } else {
       setEditingProduct(null);
-      setProductForm({ name: '', price: '', discount: 0, category: 'Calzado', brand: '', image_url: '', description: '', sizes: [], additional_images: [] });
+      setProductForm({ name: '', price: '', discount: 0, category: 'Calzado', brand: '', image_url: '', description: '', sizes: [], colors: [], additional_images: [] });
     }
     setIsProductModalOpen(true);
   };
@@ -252,9 +255,9 @@ const AdminDashboard = () => {
   const filteredOrders = orders.filter(order => {
     if (!orderSearchQuery) return true;
     const q = orderSearchQuery.toLowerCase();
-    const isId = order.id?.toLowerCase().includes(q);
-    const isName = order.customer?.nombre?.toLowerCase().includes(q);
-    const isBarrio = order.customer?.barrio?.toLowerCase().includes(q);
+    const isId = (order.id || '').toLowerCase().includes(q);
+    const isName = (order.customer?.nombre || '').toLowerCase().includes(q);
+    const isBarrio = (order.customer?.barrio || '').toLowerCase().includes(q);
     // Podemos buscar por nombre de cliente, barrio, O el ID de la orden
     return isId || isName || isBarrio;
   });
@@ -266,10 +269,33 @@ const AdminDashboard = () => {
 
   const handleStatusChange = (orderId, newStatus) => {
     updateOrderStatus(orderId, newStatus);
+    
+    if (newStatus === 'Pago Confirmado') {
+      const order = orders.find(o => o.id === orderId || o.full_id === orderId);
+      if (order && order.customer && order.customer.email) {
+        const SERVICE_ID = 'service_lmqfg7g';
+        const TEMPLATE_ID = 'template_rb7eui8'; 
+        const PUBLIC_KEY = '47WlpxK81axM_OjLd';
+
+        emailjs.send(SERVICE_ID, TEMPLATE_ID, {
+          to_name: order.customer.nombre,
+          to_email: order.customer.email,
+          order_id: order.id,
+          status_msg: 'Pago Confirmado. Ya estamos preparando tu paquete.',
+          reply_to: 'contacto@tu-tienda.com'
+        }, PUBLIC_KEY)
+        .then((result) => {
+            console.log('Correo enviado con EmailJS:', result.text);
+        }, (error) => {
+            console.error('Error enviando correo con EmailJS:', error.text);
+        });
+      }
+    }
   };
 
   const getStatusColor = (status) => {
     switch (status) {
+      case 'Pendiente': return 'bg-orange-100 text-orange-800';
       case 'Pago Confirmado': return 'bg-blue-100 text-blue-800';
       case 'Preparando': return 'bg-yellow-100 text-yellow-800';
       case 'En Camino': return 'bg-purple-100 text-purple-800';
@@ -467,6 +493,7 @@ const AdminDashboard = () => {
                           onChange={(e) => handleStatusChange(order.id, e.target.value)}
                           className={`text-sm font-bold ml-2 rounded-lg pl-3 py-1.5 border-0 focus:ring-2 focus:ring-brand-red focus:outline-none appearance-none cursor-pointer ${getStatusColor(order.status)}`}
                         >
+                          <option value="Pendiente">⏳ Pago Pendiente</option>
                           <option value="Pago Confirmado">☑ Pago Confirmado</option>
                           <option value="Preparando">📦 Preparando paquete</option>
                           <option value="En Camino">🛵 En Camino</option>
@@ -561,12 +588,15 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-x-auto">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
               {isLoading ? (
                 <div className="flex justify-center items-center py-20">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-red"></div>
                 </div>
               ) : filteredProducts.length > 0 ? (
+                <>
+                {/* Desktop Table */}
+                <div className="hidden md:block overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
@@ -607,6 +637,13 @@ const AdminDashboard = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex space-x-3">
+                            <button 
+                              onClick={() => updateProduct(product.id, { is_visible: product.is_visible === false ? true : false })} 
+                              className={`${product.is_visible === false ? 'text-gray-400' : 'text-blue-600'} hover:text-blue-900 transition-colors`}
+                              title={product.is_visible === false ? 'Mostrar producto' : 'Ocultar producto'}
+                            >
+                              {product.is_visible === false ? <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye-off"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>}
+                            </button>
                             <button onClick={() => handleOpenModal(product)} className="text-indigo-600 hover:text-indigo-900"><Edit2 size={18} /></button>
                             <button onClick={() => handleDeleteProduct(product.id)} className="text-red-600 hover:text-red-900"><Trash2 size={18} /></button>
                           </div>
@@ -615,6 +652,39 @@ const AdminDashboard = () => {
                     ))}
                   </tbody>
                 </table>
+                </div>
+                {/* Mobile Cards */}
+                <div className="md:hidden divide-y divide-gray-100">
+                  {filteredProducts.map(product => (
+                    <div key={product.id} className="p-4 flex flex-col sm:flex-row gap-4 bg-white hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center gap-4">
+                        <img className="h-16 w-16 rounded-xl object-cover border border-gray-100" src={product.image_url} alt={product.name} />
+                        <div className="flex-1">
+                          <div className="text-sm font-bold text-gray-900 line-clamp-2">{product.name}</div>
+                          <div className="text-xs text-gray-500 font-semibold mb-1">{product.brand} - {product.category}</div>
+                          <div className="text-sm font-black text-gray-900">
+                            ${product.price.toLocaleString('es-AR')}
+                            {product.discount > 0 && <span className="ml-2 text-[10px] text-red-500 bg-red-50 px-1.5 py-0.5 rounded-full border border-red-100">-{product.discount}%</span>}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center mt-2 sm:mt-0 sm:flex-col sm:justify-end gap-2 border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100">
+                        <span className="px-2 py-0.5 inline-flex text-[10px] leading-5 font-bold rounded-full bg-green-100 text-green-800">Stock</span>
+                        <div className="flex space-x-4">
+                          <button 
+                            onClick={() => updateProduct(product.id, { is_visible: product.is_visible === false ? true : false })} 
+                            className={`p-2 rounded-lg ${product.is_visible === false ? 'bg-gray-100 text-gray-500' : 'bg-blue-50 text-blue-600'}`}
+                          >
+                            {product.is_visible === false ? <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye-off"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg> : <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-eye"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>}
+                          </button>
+                          <button onClick={() => handleOpenModal(product)} className="p-2 bg-indigo-50 text-indigo-600 rounded-lg"><Edit2 size={18} /></button>
+                          <button onClick={() => handleDeleteProduct(product.id)} className="p-2 bg-red-50 text-red-600 rounded-lg"><Trash2 size={18} /></button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                </>
               ) : (
                 <div className="text-center py-12 bg-white">
                   <p className="text-gray-500">No se encontraron productos para "{productSearchQuery}"</p>
@@ -947,6 +1017,60 @@ const AdminDashboard = () => {
                         <p className="text-xs text-gray-500 mt-3">
                           Selecciona los talles que tienes en stock. Se mostrarán al cliente en la página del producto. <br/>
                           Seleccionados: <span className="font-bold text-brand-red">{(productForm.sizes || []).join(', ') || 'Ninguno'}</span>
+                        </p>
+                      </div>
+                      {/* ----------------------- */}
+
+                      {/* --- SECCIÓN DE COLORES --- */}
+                      <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 mt-4">
+                        <label className="block text-sm font-bold text-gray-700 mb-3">Colores Disponibles</label>
+                        <div className="flex items-center gap-2 mb-3">
+                          <input 
+                            type="text" 
+                            value={colorInput}
+                            onChange={(e) => setColorInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const c = colorInput.trim();
+                                if (c && !(productForm.colors || []).includes(c)) {
+                                  setProductForm(prev => ({ ...prev, colors: [...(prev.colors || []), c] }));
+                                  setColorInput('');
+                                }
+                              }
+                            }}
+                            placeholder="Ej: Negro, Blanco, Rojo..."
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-red text-sm"
+                          />
+                          <button 
+                            type="button"
+                            onClick={() => {
+                              const c = colorInput.trim();
+                              if (c && !(productForm.colors || []).includes(c)) {
+                                setProductForm(prev => ({ ...prev, colors: [...(prev.colors || []), c] }));
+                                setColorInput('');
+                              }
+                            }}
+                            className="px-4 py-2 bg-brand-dark text-white rounded-lg text-sm font-bold hover:bg-black transition-colors"
+                          >
+                            <Plus size={16} />
+                          </button>
+                        </div>
+                        {(productForm.colors || []).length > 0 && (
+                          <div className="flex flex-wrap gap-2">
+                            {(productForm.colors || []).map((color, idx) => (
+                              <span key={idx} className="inline-flex items-center bg-white border border-gray-300 text-gray-800 text-sm font-bold px-3 py-1.5 rounded-full shadow-sm">
+                                <span className="w-3 h-3 rounded-full mr-2 border border-gray-300" style={{ backgroundColor: color.toLowerCase() }}></span>
+                                {color}
+                                <button type="button" onClick={() => setProductForm(prev => ({ ...prev, colors: (prev.colors || []).filter((_, i) => i !== idx) }))} className="ml-2 text-gray-400 hover:text-red-500 transition-colors">
+                                  <X size={14} />
+                                </button>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <p className="text-xs text-gray-500 mt-3">
+                          Escribe el nombre del color y presiona Enter o el botón +. Se mostrarán al cliente para elegir.
                         </p>
                       </div>
                       {/* ----------------------- */}

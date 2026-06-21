@@ -6,6 +6,7 @@ import useOrderStore from '../store/useOrderStore';
 import useSettingsStore from '../store/useSettingsStore';
 import { supabase } from '../lib/supabaseClient';
 import { initMercadoPago } from '@mercadopago/sdk-react';
+import emailjs from '@emailjs/browser';
 
 
 initMercadoPago(import.meta.env.VITE_MP_PUBLIC_KEY || '', { locale: 'es-AR' });
@@ -65,6 +66,7 @@ const Checkout = () => {
       // 1. Guardar orden en Supabase
       const orderData = {
         customer_name: formData.nombre,
+        customer_email: formData.email,
         customer_phone: formData.telefono,
         customer_address: formData.direccion,
         customer_neighborhood: formData.barrio,
@@ -98,7 +100,28 @@ const Checkout = () => {
 
       if (itemsError) throw itemsError;
 
-      // 3. Crear preferencia en Mercado Pago usando Edge Function
+      // 3. Enviar correo de confirmación de registro
+      if (formData.email) {
+        const SERVICE_ID = 'service_lmqfg7g';
+        const TEMPLATE_ID = 'template_rb7eui8'; 
+        const PUBLIC_KEY = '47WlpxK81axM_OjLd';
+
+        emailjs.send(SERVICE_ID, TEMPLATE_ID, {
+          to_name: formData.nombre,
+          to_email: formData.email,
+          order_id: order.id,
+          total: total.toLocaleString('es-AR'),
+          status_msg: 'En espera de confirmación de pago',
+          reply_to: 'contacto@tu-tienda.com'
+        }, PUBLIC_KEY)
+        .then((result) => {
+            console.log('Correo enviado con EmailJS:', result.text);
+        }, (error) => {
+            console.error('Error enviando correo con EmailJS:', error.text);
+        });
+      }
+
+      // 4. Crear preferencia en Mercado Pago usando Edge Function
       if (paymentMethod === 'mercadopago') {
         const { data: preferenceData, error: prefError } = await supabase.functions.invoke('create-preference', {
           body: { orderId: order.id, items: items, customer: formData, returnUrl: window.location.origin, shippingCost: envio }
@@ -173,19 +196,22 @@ const Checkout = () => {
               <div className="p-6">
                 <ul className="divide-y divide-gray-100">
                   {items.map((item) => (
-                    <li key={`${item.product.id}-${item.size}`} className="py-4 flex justify-between items-center">
+                    <li key={`${item.product.id}-${item.size}-${item.color || ''}`} className="py-4 flex justify-between items-center">
                       <div className="flex items-center">
                         <img src={item.product.image_url} alt={item.product.name} className="w-16 h-16 object-cover rounded-xl border border-gray-100" />
                         <div className="ml-4">
                           <h3 className="font-bold text-gray-900">{item.product.name}</h3>
-                          <p className="text-gray-500 text-sm">Talle: {item.size} x {item.quantity}</p>
+                          <p className="text-gray-500 text-sm">
+                            Talle: {item.size} x {item.quantity}
+                            {item.color && <span className="ml-2">| Color: {item.color}</span>}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-4">
                         <p className="font-extrabold text-brand-dark">${(item.product.price * item.quantity).toLocaleString('es-AR')}</p>
                         <button 
                           type="button"
-                          onClick={() => removeItem(item.product.id, item.size)}
+                          onClick={() => removeItem(item.product.id, item.size, item.color)}
                           className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                           title="Eliminar producto"
                         >

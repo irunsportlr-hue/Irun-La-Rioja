@@ -15,6 +15,7 @@ const useOrderStore = create((set, get) => ({
           id,
           created_at,
           customer_name,
+          customer_email,
           customer_phone,
           customer_address,
           customer_neighborhood,
@@ -31,9 +32,9 @@ const useOrderStore = create((set, get) => ({
       const products = useProductStore.getState().products;
 
       const formattedOrders = ordersData.map(order => {
-        // Map pending to a more friendly string if it's new
+        // Map pending to Pendiente
         let statusStr = order.status;
-        if (statusStr === 'pending') statusStr = 'Pago Confirmado';
+        if (statusStr === 'pending') statusStr = 'Pendiente';
 
         return {
           id: order.id.substring(0, 8).toUpperCase(), // Short ID for UI
@@ -43,6 +44,7 @@ const useOrderStore = create((set, get) => ({
           paymentMethod: order.payment_method === 'mercadopago' ? 'Mercado Pago' : 'Tarjeta',
           customer: {
             nombre: order.customer_name || 'Desconocido',
+            email: order.customer_email || '',
             telefono: order.customer_phone || '-',
             direccion: order.customer_address || '-',
             barrio: order.customer_neighborhood || '-',

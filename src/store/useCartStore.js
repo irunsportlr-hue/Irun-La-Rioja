@@ -5,28 +5,28 @@ const useCartStore = create(
   persist(
     (set, get) => ({
       items: [],
-      addItem: (product, size) => {
+      addItem: (product, size, color = null) => {
         const currentItems = get().items;
         const existingItem = currentItems.find(
-          (item) => item.product.id === product.id && item.size === size
+          (item) => item.product.id === product.id && item.size === size && item.color === color
         );
 
         if (existingItem) {
           set({
             items: currentItems.map((item) =>
-              item.product.id === product.id && item.size === size
+              item.product.id === product.id && item.size === size && item.color === color
                 ? { ...item, quantity: item.quantity + 1 }
                 : item
             ),
           });
         } else {
-          set({ items: [...currentItems, { product, size, quantity: 1 }] });
+          set({ items: [...currentItems, { product, size, color, quantity: 1 }] });
         }
       },
-      removeItem: (productId, size) => {
+      removeItem: (productId, size, color = null) => {
         set({
           items: get().items.filter(
-            (item) => !(item.product.id === productId && item.size === size)
+            (item) => !(item.product.id === productId && item.size === size && item.color === color)
           ),
         });
       },
