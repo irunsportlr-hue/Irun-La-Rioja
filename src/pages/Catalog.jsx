@@ -16,9 +16,10 @@ const Catalog = () => {
   const [activeBrand, setActiveBrand] = useState('Todas');
   const [showFilters, setShowFilters] = useState(false);
 
-  const { mpDiscount, showTransferPrice } = useSettingsStore();
+  const { mpDiscount, showTransferPrice, fetchSettings } = useSettingsStore();
 
   useEffect(() => {
+    fetchSettings();
     fetchProducts();
   }, []);
 
@@ -98,11 +99,13 @@ const Catalog = () => {
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
                 {filteredProducts.map(product => {
-                  const finalPrice = product.discount > 0 ? (product.price * (1 - product.discount / 100)) : product.price;
-                  const transferPrice = finalPrice * (1 - (mpDiscount || 3.49) / 100);
+                  const safePrice = product.price || 0;
+                  const finalPrice = product.discount > 0 ? (safePrice * (1 - product.discount / 100)) : safePrice;
+                  const safeMpDiscount = mpDiscount || 3.49;
+                  const transferPrice = finalPrice * (1 - safeMpDiscount / 100);
                   
                   return (
-                  <Link to={`/product/${product.id}`} key={product.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 sm:border-transparent">
+                  <Link to={`/product/${product.id}`} key={product.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 sm:border-transparent flex flex-col h-full">
                     <div className="relative h-48 sm:h-64 overflow-hidden bg-gray-100">
                       <img src={product.image_url} alt={product.name} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
                       <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-white/90 backdrop-blur-sm px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold text-gray-800">
@@ -114,7 +117,7 @@ const Catalog = () => {
                         <h3 className="text-sm sm:text-lg font-bold text-gray-900 leading-tight mb-1 group-hover:text-brand-red transition-colors line-clamp-2">{product.name}</h3>
                         <span className="text-[10px] sm:text-xs text-gray-500 block mb-2 sm:mb-4">{product.category}</span>
                       </div>
-                      <div className="flex flex-col mt-auto">
+                      <div className="flex flex-col mt-auto pt-2">
                         {showTransferPrice ? (
                           <>
                             <div className="flex items-center space-x-2">
@@ -131,7 +134,7 @@ const Catalog = () => {
                                   Lista: ${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                                 </span>
                                 <span className="text-[10px] sm:text-[11px] text-gray-400 line-through">
-                                  ${product.price.toLocaleString('es-AR')}
+                                  ${safePrice.toLocaleString('es-AR')}
                                 </span>
                               </div>
                             ) : (
@@ -152,7 +155,7 @@ const Catalog = () => {
                                 </span>
                               </div>
                               <span className="text-[10px] sm:text-xs text-gray-400 line-through">
-                                ${product.price.toLocaleString('es-AR')}
+                                ${safePrice.toLocaleString('es-AR')}
                               </span>
                             </>
                           ) : (
