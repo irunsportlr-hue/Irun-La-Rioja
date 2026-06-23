@@ -98,8 +98,21 @@ const ProductDetail = () => {
       const finalPrice = product.discount > 0 
         ? (product.price * (1 - product.discount / 100)) 
         : product.price;
+      const { mpDiscount, showTransferPrice } = useSettingsStore.getState();
+      const transferPrice = finalPrice * (1 - (mpDiscount || 3.49) / 100);
       const productUrl = window.location.href;
-      const shareText = `🔥 *${product.name}* - ${product.brand}\n💰 $${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}${product.discount > 0 ? ` (${product.discount}% OFF!)` : ''}\n\n🛒 Compralo en I-RUN LA RIOJA:\n${productUrl}`;
+      
+      let shareText = `🔥 *${product.name}* - ${product.brand}\n`;
+      if (selectedSize) shareText += `📏 Talle: ${selectedSize}\n`;
+      if (selectedColor) shareText += `🎨 Color: ${selectedColor}\n`;
+      
+      if (showTransferPrice) {
+        shareText += `💵 Efectivo/Transferencia: *$${transferPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}*\n`;
+        shareText += `💳 Precio de Lista: $${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}\n`;
+      } else {
+        shareText += `💰 $${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}${product.discount > 0 ? ` (${product.discount}% OFF!)` : ''}\n`;
+      }
+      shareText += `\n🛒 Compralo en I-RUN LA RIOJA:\n${productUrl}`;
 
       // Create a branded image using canvas
       const canvas = document.createElement('canvas');
@@ -168,7 +181,7 @@ const ProductDetail = () => {
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 44px Arial, sans-serif';
       const nameLines = wrapText(ctx, product.name, canvas.width - 100);
-      let nameY = canvas.height - 220;
+      let nameY = canvas.height - 250;
       nameLines.forEach(line => {
         ctx.fillText(line, 50, nameY);
         nameY += 52;
@@ -179,24 +192,54 @@ const ProductDetail = () => {
       ctx.fillStyle = 'rgba(255,255,255,0.7)';
       ctx.fillText(product.brand.toUpperCase(), 50, nameY + 10);
 
-      // Price
-      ctx.font = 'bold 52px Arial, sans-serif';
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(`$${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`, 50, canvas.height - 50);
+      // Selected Variants
+      let variantsText = '';
+      if (selectedSize) variantsText += `Talle: ${selectedSize}  `;
+      if (selectedColor) variantsText += `Color: ${selectedColor}`;
+      if (variantsText) {
+        ctx.font = 'bold 26px Arial, sans-serif';
+        ctx.fillStyle = '#ef4444';
+        ctx.fillText(variantsText, 50, nameY + 50);
+      }
 
-      if (product.discount > 0) {
-        const priceWidth = ctx.measureText(`$${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`).width;
-        ctx.font = 'bold 28px Arial, sans-serif';
-        ctx.fillStyle = 'rgba(255,255,255,0.5)';
-        const oldPriceText = `$${product.price.toLocaleString('es-AR')}`;
-        ctx.fillText(oldPriceText, 50 + priceWidth + 20, canvas.height - 55);
-        const oldPriceW = ctx.measureText(oldPriceText).width;
-        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(50 + priceWidth + 20, canvas.height - 65);
-        ctx.lineTo(50 + priceWidth + 20 + oldPriceW, canvas.height - 65);
-        ctx.stroke();
+      // Price
+      let priceY = canvas.height - 60;
+      
+      if (showTransferPrice) {
+        // Draw Transfer price
+        ctx.font = 'bold 52px Arial, sans-serif';
+        ctx.fillStyle = '#ef4444';
+        const transferText = `$${transferPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`;
+        ctx.fillText(transferText, 50, priceY);
+        
+        const trW = ctx.measureText(transferText).width;
+        ctx.font = 'bold 22px Arial, sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(` EFECTIVO / TRANSFERENCIA`, 50 + trW + 10, priceY - 10);
+
+        // Draw List price below
+        ctx.font = 'bold 30px Arial, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.fillText(`Lista: $${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`, 50, priceY + 40);
+      } else {
+        ctx.font = 'bold 52px Arial, sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(`$${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`, 50, priceY);
+
+        if (product.discount > 0) {
+          const priceWidth = ctx.measureText(`$${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}`).width;
+          ctx.font = 'bold 28px Arial, sans-serif';
+          ctx.fillStyle = 'rgba(255,255,255,0.5)';
+          const oldPriceText = `$${product.price.toLocaleString('es-AR')}`;
+          ctx.fillText(oldPriceText, 50 + priceWidth + 20, priceY - 5);
+          const oldPriceW = ctx.measureText(oldPriceText).width;
+          ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(50 + priceWidth + 20, priceY - 15);
+          ctx.lineTo(50 + priceWidth + 20 + oldPriceW, priceY - 15);
+          ctx.stroke();
+        }
       }
 
       // Convert canvas to blob
@@ -229,8 +272,6 @@ const ProductDetail = () => {
       if (error.name !== 'AbortError') {
         console.error('Error al compartir:', error);
         // Ultimate fallback: just open WhatsApp with link
-        const finalPrice = product.discount > 0 ? (product.price * (1 - product.discount / 100)) : product.price;
-        const shareText = `🔥 ${product.name} - ${product.brand}\n💰 $${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}\n🛒 ${window.location.href}`;
         window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
       }
     } finally {
