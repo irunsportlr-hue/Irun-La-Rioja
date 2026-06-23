@@ -346,32 +346,61 @@ const ProductDetail = () => {
             <h1 className="text-4xl font-extrabold font-montserrat text-brand-dark mb-4">{product.name}</h1>
             
             <div className="mb-6 flex flex-col">
-              {product.discount > 0 ? (
-                <>
-                  <div className="flex items-center space-x-4 mb-1">
-                    <span className="text-3xl font-extrabold text-brand-dark">
-                      ${(product.price * (1 - product.discount / 100)).toLocaleString('es-AR', { maximumFractionDigits: 0 })}
-                    </span>
-                    <span className="text-sm font-bold text-white bg-brand-red px-3 py-1 rounded-full shadow-sm">
-                      {product.discount}% OFF
-                    </span>
-                  </div>
-                  <span className="text-lg text-gray-400 line-through font-semibold">
-                    ${product.price.toLocaleString('es-AR')}
-                  </span>
-                </>
-              ) : (
-                <span className="text-3xl font-extrabold text-brand-dark">${product.price.toLocaleString('es-AR')}</span>
-              )}
               {(() => {
-                if (!showTransferPrice) return null;
                 const finalPrice = product.discount > 0 ? (product.price * (1 - product.discount / 100)) : product.price;
                 const transferPrice = finalPrice * (1 - (mpDiscount || 3.49) / 100);
-                return (
-                  <span className="text-sm font-bold text-red-600 mt-2">
-                    Precio Transferencia: ${transferPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
-                  </span>
-                );
+
+                if (showTransferPrice) {
+                  return (
+                    <>
+                      <div className="flex items-center space-x-3 mb-1">
+                        <span className="text-3xl sm:text-4xl font-extrabold text-red-600">
+                          ${transferPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                        </span>
+                        <span className="text-xs sm:text-sm font-bold text-red-600 bg-red-50 px-2 py-1 rounded uppercase tracking-wider">
+                          Efectivo / Transferencia
+                        </span>
+                      </div>
+                      
+                      {product.discount > 0 ? (
+                        <div className="flex items-center space-x-3 mt-2">
+                          <span className="text-lg font-semibold text-gray-500">
+                            Precio Lista: ${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                          </span>
+                          <span className="text-sm text-gray-400 line-through">
+                            ${product.price.toLocaleString('es-AR')}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-lg font-semibold text-gray-500 mt-2 block">
+                          Precio Lista: ${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                        </span>
+                      )}
+                    </>
+                  );
+                } else {
+                  return (
+                    <>
+                      {product.discount > 0 ? (
+                        <>
+                          <div className="flex items-center space-x-4 mb-1">
+                            <span className="text-3xl sm:text-4xl font-extrabold text-brand-dark">
+                              ${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                            </span>
+                            <span className="text-sm font-bold text-white bg-brand-red px-3 py-1 rounded-full shadow-sm">
+                              {product.discount}% OFF
+                            </span>
+                          </div>
+                          <span className="text-lg text-gray-400 line-through font-semibold">
+                            ${product.price.toLocaleString('es-AR')}
+                          </span>
+                        </>
+                      ) : (
+                        <span className="text-3xl sm:text-4xl font-extrabold text-brand-dark">${product.price.toLocaleString('es-AR')}</span>
+                      )}
+                    </>
+                  );
+                }
               })()}
             </div>
 
