@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Filter } from 'lucide-react';
 
 import useProductStore from '../store/useProductStore';
+import useSettingsStore from '../store/useSettingsStore';
 
 const categories = ['Todos', 'Calzado', 'Ropa', 'Accesorios'];
 const brands = ['Todas', 'Nike', 'Adidas', 'Puma', 'Under Armour'];
@@ -15,7 +16,7 @@ const Catalog = () => {
   const [activeBrand, setActiveBrand] = useState('Todas');
   const [showFilters, setShowFilters] = useState(false);
 
-  const { mpDiscount } = useSettingsStore();
+  const { mpDiscount, showTransferPrice } = useSettingsStore();
 
   useEffect(() => {
     fetchProducts();
@@ -133,9 +134,11 @@ const Catalog = () => {
                             ${finalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
                           </span>
                         )}
-                        <span className="text-[10px] sm:text-xs font-bold text-red-600 mt-1">
-                          Transferencia: ${transferPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
-                        </span>
+                        {showTransferPrice && (
+                          <span className="text-[10px] sm:text-xs font-bold text-red-600 mt-1">
+                            Transferencia: ${transferPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </Link>
