@@ -92,6 +92,10 @@ const ProductDetail = () => {
     );
   }
 
+  const relatedProducts = products
+    .filter(p => p.is_visible !== false && p.id !== product.id && (p.category === product.category || p.brand === product.brand))
+    .slice(0, 4);
+
   const handleShareWhatsApp = async () => {
     setIsSharing(true);
     try {
@@ -556,6 +560,46 @@ const ProductDetail = () => {
             </div>
           </div>
         </div>
+
+        {/* Related Products Section */}
+        {relatedProducts.length > 0 && (
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 mb-10">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold font-montserrat text-brand-dark">También te podría gustar</h2>
+              <div className="h-1 flex-1 bg-gray-100 ml-6 rounded-full overflow-hidden hidden sm:block">
+                <div className="h-full bg-brand-red w-24"></div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {relatedProducts.map(related => {
+                const rFinalPrice = related.discount > 0 ? (related.price * (1 - related.discount / 100)) : related.price;
+                
+                return (
+                  <Link to={`/product/${related.id}`} key={related.id} className="group bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col h-full">
+                    <div className="relative h-48 overflow-hidden bg-gray-100">
+                      <img src={related.image_url} alt={related.name} className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" />
+                      {related.discount > 0 && (
+                        <div className="absolute top-2 left-2 bg-brand-red text-white px-2 py-0.5 rounded-full text-[10px] font-black shadow-sm">
+                          -{related.discount}%
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4 flex flex-col flex-grow">
+                      <span className="text-[10px] text-gray-500 mb-1">{related.brand}</span>
+                      <h3 className="text-sm font-bold text-gray-900 leading-tight mb-2 group-hover:text-brand-red transition-colors line-clamp-2">{related.name}</h3>
+                      <div className="mt-auto pt-2">
+                        <span className="text-base font-black text-brand-dark">
+                          ${rFinalPrice.toLocaleString('es-AR', { maximumFractionDigits: 0 })}
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
       </div>
       
